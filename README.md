@@ -8,16 +8,24 @@ Claude Code plugin providing skills for working with **CLIF** (Common Longitudin
 
 ## Installation
 
-### Via Claude Code Plugin Marketplace
+### 1. Install clifpy
 
 ```bash
-/plugin marketplace add <your-repo-url>
+pip install clifpy
+```
+
+### 2. Install Skill
+
+#### Via Plugin Marketplace
+
+```bash
+/plugin marketplace add Common-Longitudinal-ICU-data-Format/skills
 /plugin install clif-icu@clif-skills
 ```
 
-### Manual Installation
+#### Manual
 
-Copy the `skills/clif-icu` directory to your Claude Code skills folder:
+Copy `skills/clif-icu` to:
 - Personal: `~/.claude/skills/clif-icu/`
 - Project: `.claude/skills/clif-icu/`
 
