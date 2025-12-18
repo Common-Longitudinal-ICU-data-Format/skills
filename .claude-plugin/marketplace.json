@@ -6,15 +6,15 @@
   },
   "metadata": {
     "description": "CLIF ICU data format and clifpy Python library skills",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "clif-icu",
-      "description": "Common Longitudinal ICU data Format - load CLIF tables with clifpy, compute clinical scores (SOFA, CCI, Elixhauser), create wide datasets",
+      "description": "Analyzes ICU clinical data using CLIF format and clifpy. Loads tables, computes SOFA/CCI/Elixhauser scores, creates wide datasets.",
       "source": "./",
       "strict": false,
-      "skills": ["./"]
+      "skills": ["./skills/clif-icu"]
     }
   ]
 }

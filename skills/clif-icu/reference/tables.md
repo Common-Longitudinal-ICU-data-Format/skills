@@ -12,7 +12,8 @@ These tables have many rows per hospitalization. **Always filter by both hospita
 | Property | Value |
 |----------|-------|
 | **Class** | `Vitals` |
-| **Schema** | [mCIDE/vitals/](../mCIDE/vitals/clif_vitals_categories.csv) |
+| **Table Schema** | [schemas/vitals_schema.yaml](../schemas/vitals_schema.yaml) |
+| **Category Values** | [mCIDE/vitals/](../mCIDE/vitals/clif_vitals_categories.csv) |
 | **Category Column** | `vital_category` |
 | **Categories** | temp_c, heart_rate, sbp, dbp, spo2, respiratory_rate, map, height_cm, weight_kg |
 
@@ -30,7 +31,8 @@ vitals = Vitals.from_file(
 | Property | Value |
 |----------|-------|
 | **Class** | `Labs` |
-| **Schema** | [mCIDE/labs/](../mCIDE/labs/clif_lab_categories.csv) |
+| **Table Schema** | [schemas/labs_schema.yaml](../schemas/labs_schema.yaml) |
+| **Category Values** | [mCIDE/labs/](../mCIDE/labs/clif_lab_categories.csv) |
 | **Category Column** | `lab_category` |
 | **Count** | 53 categories |
 | **Order Groups** | blood_gas, bmp, cbc, coags, lft, misc |
@@ -57,7 +59,8 @@ labs = Labs.from_file(
 | Property | Value |
 |----------|-------|
 | **Class** | `PatientAssessments` |
-| **Schema** | [mCIDE/patient_assessments/](../mCIDE/patient_assessments/clif_patient_assessment_categories.csv) |
+| **Table Schema** | [schemas/patient_assessments_schema.yaml](../schemas/patient_assessments_schema.yaml) |
+| **Category Values** | [mCIDE/patient_assessments/](../mCIDE/patient_assessments/clif_patient_assessment_categories.csv) |
 | **Category Column** | `assessment_category` |
 | **Count** | 72 categories |
 
@@ -85,7 +88,8 @@ assessments = PatientAssessments.from_file(
 | Property | Value |
 |----------|-------|
 | **Class** | `MedicationAdminContinuous` |
-| **Schema** | [mCIDE/medication_admin_continuous/](../mCIDE/medication_admin_continuous/clif_medication_admin_continuous_med_categories.csv) |
+| **Table Schema** | [schemas/medication_admin_continuous_schema.yaml](../schemas/medication_admin_continuous_schema.yaml) |
+| **Category Values** | [mCIDE/medication_admin_continuous/](../mCIDE/medication_admin_continuous/clif_medication_admin_continuous_med_categories.csv) |
 | **Category Column** | `med_category` |
 | **Count** | 78 medications |
 | **Action Column** | `action_category`: start, stop, going, dose_change |
@@ -115,7 +119,8 @@ meds = MedicationAdminContinuous.from_file(
 | Property | Value |
 |----------|-------|
 | **Class** | `MedicationAdminIntermittent` |
-| **Schema** | [mCIDE/medication_admin_intermittent/](../mCIDE/medication_admin_intermittent/clif_medication_admin_intermittent_med_categories.csv) |
+| **Table Schema** | [schemas/medication_admin_intermittent_schema.yaml](../schemas/medication_admin_intermittent_schema.yaml) |
+| **Category Values** | [mCIDE/medication_admin_intermittent/](../mCIDE/medication_admin_intermittent/clif_medication_admin_intermittent_med_categories.csv) |
 | **Category Column** | `med_category` |
 | **Count** | 100+ medications |
 | **Action Column** | `action_category`: given, not_given, bolus, other |
@@ -136,7 +141,8 @@ meds = MedicationAdminIntermittent.from_file(
 | Property | Value |
 |----------|-------|
 | **Class** | `RespiratorySupport` |
-| **Schema** | [mCIDE/respiratory_support/](../mCIDE/respiratory_support/) |
+| **Table Schema** | [schemas/respiratory_support_schema.yaml](../schemas/respiratory_support_schema.yaml) |
+| **Category Values** | [mCIDE/respiratory_support/](../mCIDE/respiratory_support/) |
 | **Device Column** | `device_category` |
 | **Mode Column** | `mode_category` |
 
@@ -158,7 +164,8 @@ resp = RespiratorySupport.from_file(
 | Property | Value |
 |----------|-------|
 | **Class** | `MicrobiologyCulture` |
-| **Schema** | [mCIDE/microbiology_culture/](../mCIDE/microbiology_culture/) |
+| **Table Schema** | [schemas/microbiology_culture_schema.yaml](../schemas/microbiology_culture_schema.yaml) |
+| **Category Values** | [mCIDE/microbiology_culture/](../mCIDE/microbiology_culture/) |
 | **Organism Column** | `organism_category` |
 | **Fluid Column** | `fluid_category` |
 | **Count** | 545+ organisms |
@@ -183,7 +190,8 @@ These have fewer rows per hospitalization. Filter by hospitalization_id only.
 | Property | Value |
 |----------|-------|
 | **Class** | `Patient` |
-| **Schema** | [mCIDE/patient/](../mCIDE/patient/) |
+| **Table Schema** | [schemas/patient_schema.yaml](../schemas/patient_schema.yaml) |
+| **Category Values** | [mCIDE/patient/](../mCIDE/patient/) |
 
 | Category Column | Values |
 |-----------------|--------|
@@ -198,7 +206,8 @@ These have fewer rows per hospitalization. Filter by hospitalization_id only.
 | Property | Value |
 |----------|-------|
 | **Class** | `Hospitalization` |
-| **Schema** | [mCIDE/hospitalization/](../mCIDE/hospitalization/) |
+| **Table Schema** | [schemas/hospitalization_schema.yaml](../schemas/hospitalization_schema.yaml) |
+| **Category Values** | [mCIDE/hospitalization/](../mCIDE/hospitalization/) |
 
 | Category Column | Values |
 |-----------------|--------|
@@ -211,7 +220,8 @@ These have fewer rows per hospitalization. Filter by hospitalization_id only.
 | Property | Value |
 |----------|-------|
 | **Class** | `Adt` |
-| **Schema** | [mCIDE/adt/](../mCIDE/adt/) |
+| **Table Schema** | [schemas/adt_schema.yaml](../schemas/adt_schema.yaml) |
+| **Category Values** | [mCIDE/adt/](../mCIDE/adt/) |
 
 | Category Column | Values |
 |-----------------|--------|
@@ -225,7 +235,8 @@ These have fewer rows per hospitalization. Filter by hospitalization_id only.
 | Property | Value |
 |----------|-------|
 | **Class** | `CodeStatus` |
-| **Schema** | [mCIDE/code_status/](../mCIDE/code_status/clif_code_status_categories.csv) |
+| **Table Schema** | [schemas/code_status_schema.yaml](../schemas/code_status_schema.yaml) |
+| **Category Values** | [mCIDE/code_status/](../mCIDE/code_status/clif_code_status_categories.csv) |
 | **Category Column** | `code_status_category` |
 | **Values** | DNR, DNAR, UDNR, DNR/DNI, DNAR/DNI, DNI_only, AND, Full, Presume_Full, Other |
 
@@ -235,7 +246,8 @@ These have fewer rows per hospitalization. Filter by hospitalization_id only.
 | Property | Value |
 |----------|-------|
 | **Class** | `Position` |
-| **Schema** | [mCIDE/postion/](../mCIDE/postion/clif_position_categories.csv) |
+| **Table Schema** | [schemas/position_schema.yaml](../schemas/position_schema.yaml) |
+| **Category Values** | [mCIDE/postion/](../mCIDE/postion/clif_position_categories.csv) |
 | **Category Column** | `position_category` |
 | **Values** | prone, not_prone |
 
@@ -245,7 +257,8 @@ These have fewer rows per hospitalization. Filter by hospitalization_id only.
 | Property | Value |
 |----------|-------|
 | **Class** | `CrrtTherapy` |
-| **Schema** | [mCIDE/crrt_therapy/](../mCIDE/crrt_therapy/clif_crrt_therapy_mode_categories.csv) |
+| **Table Schema** | [schemas/crrt_therapy_schema.yaml](../schemas/crrt_therapy_schema.yaml) |
+| **Category Values** | [mCIDE/crrt_therapy/](../mCIDE/crrt_therapy/clif_crrt_therapy_mode_categories.csv) |
 | **Category Column** | `crrt_mode_category` |
 | **Values** | scuf, cvvh, cvvhd, cvvhdf, avvh |
 
@@ -255,7 +268,8 @@ These have fewer rows per hospitalization. Filter by hospitalization_id only.
 | Property | Value |
 |----------|-------|
 | **Class** | `EcmoMcs` |
-| **Schema** | mCIDE/ecmo/ |
+| **Table Schema** | [schemas/ecmo_mcs_schema.yaml](../schemas/ecmo_mcs_schema.yaml) |
+| **Category Values** | mCIDE/ecmo/ |
 | **Category Column** | `device_category` |
 
 ---
@@ -268,6 +282,7 @@ These use ICD/CPT codes, not standardized categories.
 | Property | Value |
 |----------|-------|
 | **Class** | `HospitalDiagnosis` |
+| **Table Schema** | [schemas/hospital_diagnosis_schema.yaml](../schemas/hospital_diagnosis_schema.yaml) |
 | **Key Columns** | diagnosis_code, diagnosis_primary, poa_present |
 | **Note** | ICD-9/ICD-10 codes, use for CCI/Elixhauser calculation |
 
@@ -277,6 +292,8 @@ These use ICD/CPT codes, not standardized categories.
 | Property | Value |
 |----------|-------|
 | **Class** | `PatientProcedures` |
+| **Table Schema** | [schemas/patient_procedures_schema.yaml](../schemas/patient_procedures_schema.yaml) |
+| **Category Values** | [mCIDE/patient_procedures/](../mCIDE/patient_procedures/) |
 | **Key Columns** | procedure_code |
 | **Note** | CPT, ICD10PCS, HCPCS codes |
 
@@ -286,7 +303,8 @@ These use ICD/CPT codes, not standardized categories.
 | Property | Value |
 |----------|-------|
 | **Class** | `MicrobiologySusceptibility` |
-| **Schema** | [mCIDE/microbiology_susceptibility/](../mCIDE/microbiology_susceptibility/) |
+| **Table Schema** | [schemas/microbiology_susceptibility_schema.yaml](../schemas/microbiology_susceptibility_schema.yaml) |
+| **Category Values** | [mCIDE/microbiology_susceptibility/](../mCIDE/microbiology_susceptibility/) |
 | **Category Column** | `susceptibility_category` |
 | **Values** | susceptible, non_susceptible, indeterminate, NA |
 
@@ -296,6 +314,7 @@ These use ICD/CPT codes, not standardized categories.
 | Property | Value |
 |----------|-------|
 | **Class** | `MicrobiologyNonculture` |
-| **Schema** | [mCIDE/microbiology_nonculture/](../mCIDE/microbiology_nonculture/) |
+| **Table Schema** | [schemas/microbiology_nonculture_schema.yaml](../schemas/microbiology_nonculture_schema.yaml) |
+| **Category Values** | [mCIDE/microbiology_nonculture/](../mCIDE/microbiology_nonculture/) |
 | **Result Column** | `result_category` |
 | **Note** | PCR, antigen, molecular tests |

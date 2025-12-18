@@ -1,47 +1,63 @@
-# CLIF + clifpy Skill
+# CLIF Skills Plugin
 
-**CLIF** (Common Longitudinal ICU data Format) combined with **clifpy** Python library for ICU clinical data analysis.
+Claude Code plugin providing skills for working with **CLIF** (Common Longitudinal ICU data Format) and the **clifpy** Python library.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-------------------------------------------------------------------------
+---
 
-## Skill Structure
+## Installation
 
-```         
-skills/
-├── SKILL.md                    # Main entry point
-├── README.md                   # This file
-├── reference/
-│   ├── tables.md               # All 20 tables + schema links + categories
-│   ├── clifpy-api.md           # Python API reference
-│   ├── clinical-scores.md      # SOFA, CCI, Elixhauser, MDRO
-│   └── data-processing.md      # Wide datasets, waterfall, stitching
-├── mCIDE/                      # Standardized vocabulary CSV files
-├── schemas/                    # YAML schema definitions
-└── examples/                   # Example notebooks
+### Via Claude Code Plugin Marketplace
+
+```bash
+/plugin marketplace add <your-repo-url>
+/plugin install clif-icu@clif-skills
 ```
 
-------------------------------------------------------------------------
+### Manual Installation
 
-------------------------------------------------------------------------
+Copy the `skills/clif-icu` directory to your Claude Code skills folder:
+- Personal: `~/.claude/skills/clif-icu/`
+- Project: `.claude/skills/clif-icu/`
 
-## Reference Files
+---
 
-| File | Description |
-|----|----|
-| [SKILL.md](SKILL.md) | Main entry, decision tree |
-| [reference/tables.md](reference/tables.md) | All 20 tables with schema links and category values |
-| [reference/clifpy-api.md](reference/clifpy-api.md) | Python API, loading patterns, validation |
-| [reference/clinical-scores.md](reference/clinical-scores.md) | SOFA, CCI, Elixhauser, MDRO calculations |
-| [reference/data-processing.md](reference/data-processing.md) | Wide datasets, waterfall, stitching, outliers |
+## Available Skills
 
-------------------------------------------------------------------------
+| Skill | Description |
+|-------|-------------|
+| **clif-icu** | Analyzes ICU clinical data using CLIF format and clifpy. Loads tables, computes SOFA/CCI/Elixhauser scores, creates wide datasets. |
 
-------------------------------------------------------------------------
+---
+
+## Repository Structure
+
+```
+clif-skills/
+├── .claude-plugin/
+│   └── marketplace.json        # Plugin registration
+├── skills/
+│   └── clif-icu/               # CLIF ICU skill
+│       ├── SKILL.md            # Skill definition
+│       ├── reference/          # Documentation
+│       ├── mCIDE/              # Standardized vocabulary
+│       └── schemas/            # YAML schema definitions
+├── README.md                   # This file
+└── LICENSE
+```
+
+---
 
 ## About CLIF
 
-Official Website: [clif-icu.com](https://clif-icu.com/)
+**CLIF** (Common Longitudinal ICU data Format) is a standardized format for ICU clinical data enabling multi-center research and collaboration.
 
-------------------------------------------------------------------------
+- Official Website: [clif-icu.com](https://clif-icu.com/)
+- Python Library: [clifpy on PyPI](https://pypi.org/project/clifpy/)
+
+---
+
+## License
+
+Apache 2.0
