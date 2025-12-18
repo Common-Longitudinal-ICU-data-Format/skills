@@ -112,12 +112,38 @@ co.load_table('vitals', filters={'hospitalization_id': hosp_ids})
 
 ## Example Scripts
 
-Complete workflow examples:
+Complete workflow examples in [scripts/](scripts/):
 
-| Script | Description |
-|--------|-------------|
-| [scripts/cohort_identification_example.py](scripts/cohort_identification_example.py) | End-to-end cohort building: adult filtering, encounter stitching, CRRT identification, ESRD exclusion |
-| [scripts/sofa_score_calculation.py](scripts/sofa_score_calculation.py) | SOFA score computation: load tables, convert medication units, create wide dataset, compute 6 SOFA components |
+### cohort_identification_example.py
+End-to-end cohort identification workflow:
+1. Load core tables (patient, hospitalization, adt)
+2. Filter adults (age >= 18) and date range (2018-2024)
+3. Stitch encounters using 6-hour windows
+4. Identify CRRT encounters
+5. Exclude ESRD patients (ICD codes N185, N186, Z992)
+6. Check weight data availability
+7. Build final cohort with demographics
+8. Save to parquet
+
+```python
+from clifpy.clif_orchestrator import ClifOrchestrator
+from clifpy.utils.stitching_encounters import stitch_encounters
+```
+
+### sofa_score_calculation.py
+SOFA score computation workflow:
+1. Load cohort and define time windows (e.g., first 24h)
+2. Load required tables (labs, vitals, assessments, medications, respiratory)
+3. Clean medication data (remove null doses)
+4. Convert vasopressor units to mcg/kg/min
+5. Create wide dataset with `REQUIRED_SOFA_CATEGORIES_BY_TABLE`
+6. Compute 6 SOFA components (respiratory, coagulation, liver, cardiovascular, CNS, renal)
+7. Save results to CSV
+
+```python
+from clifpy.clif_orchestrator import ClifOrchestrator
+from clifpy.utils.sofa import REQUIRED_SOFA_CATEGORIES_BY_TABLE
+```
 
 ---
 
