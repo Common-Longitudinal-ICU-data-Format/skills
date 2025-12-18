@@ -1,13 +1,20 @@
 {
   "name": "clif-skills",
-  "version": "1.0.0",
-  "description": "CLIF ICU data format and clifpy Python library skills",
+  "owner": {
+    "name": "CLIF Consortium - VC",
+    "email": "clif_consortium@uchicago.edu"
+  },
+  "metadata": {
+    "description": "CLIF ICU data format and clifpy Python library skills",
+    "version": "1.0.0"
+  },
   "plugins": [
     {
       "name": "clif-icu",
       "description": "Common Longitudinal ICU data Format - load CLIF tables with clifpy, compute clinical scores (SOFA, CCI, Elixhauser), create wide datasets",
-      "skills": ["."],
-      "strict": false
+      "source": "./",
+      "strict": false,
+      "skills": ["./"]
     }
   ]
 }
