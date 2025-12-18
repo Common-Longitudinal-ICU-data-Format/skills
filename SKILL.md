@@ -1,5 +1,5 @@
 ---
-name: clif
+name: clif-icu
 description: Use for ICU clinical data analysis - loading CLIF tables with clifpy, filtering by hospitalization_id and category, computing SOFA/CCI scores, creating wide datasets
 ---
 
