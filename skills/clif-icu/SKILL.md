@@ -26,10 +26,25 @@ Activate this skill when:
 
 ---
 
+## Instructions
+
+Follow these steps when working with CLIF data:
+
+1. **Identify required tables** - Determine which CLIF tables contain the data needed (vitals, labs, medications, etc.)
+2. **Always filter data** - Use hospitalization_id filters on all tables; add category filters on long tables (see filtering rules below)
+3. **Choose the right approach**:
+   - Use **individual table classes** for most tasks (faster, more memory efficient)
+   - Use **ClifOrchestrator** only when creating wide datasets or computing SOFA scores
+4. **Look up category values** - Check [mCIDE/](mCIDE/) for valid category values before filtering
+5. **Compute clinical scores** - Use ClifOrchestrator for SOFA, or refer to [reference/clinical-scores.md](reference/clinical-scores.md) for CCI and Elixhauser
+
+---
+
 ## Critical: Always Filter Data
 
-1. **hospitalization_id** - Filter ALL tables
-2. **Category filters** - Filter long tables by category column:
+### Long Tables (Use BOTH hospitalization_id AND category filters)
+
+These tables have many rows per hospitalization. **Always filter by category column:**
 
 | Table | Category Column | Example Values |
 |-------|-----------------|----------------|
@@ -39,6 +54,11 @@ Activate this skill when:
 | medication_admin_continuous | med_category | norepinephrine, propofol, fentanyl |
 | medication_admin_intermittent | med_category | vancomycin, cefepime |
 | respiratory_support | device_category | IMV, NIPPV, High_Flow_NC |
+| microbiology_culture | organism_category | staphylococcus_aureus, escherichia_coli |
+
+### Other Tables (hospitalization_id filter only, if needed)
+
+All other tables (patient, hospitalization, adt, code_status, position, crrt_therapy, ecmo_mcs, hospital_diagnosis, patient_procedures, microbiology_susceptibility, microbiology_nonculture) have fewer rows per hospitalization. Filter by `hospitalization_id` only when needed.
 
 ---
 
@@ -90,6 +110,17 @@ co.load_table('vitals', filters={'hospitalization_id': hosp_ids})
 
 ---
 
+## Example Scripts
+
+Complete workflow examples:
+
+| Script | Description |
+|--------|-------------|
+| [scripts/cohort_identification_example.py](scripts/cohort_identification_example.py) | End-to-end cohort building: adult filtering, encounter stitching, CRRT identification, ESRD exclusion |
+| [scripts/sofa_score_calculation.py](scripts/sofa_score_calculation.py) | SOFA score computation: load tables, convert medication units, create wide dataset, compute 6 SOFA components |
+
+---
+
 ## Reference Files
 
 For detailed information, read the appropriate reference file:
@@ -97,6 +128,9 @@ For detailed information, read the appropriate reference file:
 | Topic | File | When to Read |
 |-------|------|--------------|
 | **Table schemas & categories** | [reference/tables.md](reference/tables.md) | Looking up table structure, column definitions, category values |
+| **Clinical scores** | [reference/clinical-scores.md](reference/clinical-scores.md) | Computing SOFA, CCI, Elixhauser scores |
+| **Data processing** | [reference/data-processing.md](reference/data-processing.md) | Wide datasets, hourly aggregation, encounter stitching, outlier handling |
+| **clifpy API** | [reference/clifpy-api.md](reference/clifpy-api.md) | Complete API reference for clifpy library |
 | **CLIF vocabulary** | [mCIDE/](mCIDE/) | Looking up specific category values and their descriptions |
 | **Config file setup** | [reference/clifpy_utils/configuration.md](reference/clifpy_utils/configuration.md) | Setting up clif_config.json, understanding loading options |
 | **Table classes & methods** | [reference/clifpy_utils/table_classes.md](reference/clifpy_utils/table_classes.md) | Using BaseTable, from_file(), table-specific methods |
@@ -129,3 +163,14 @@ from clifpy.tables import (
 3. **Filter long tables by category**
 4. **Use parquet** - Faster than CSV
 5. **Limit columns** - `columns=['col1', 'col2']`
+
+---
+
+## Requirements
+
+```bash
+pip install clifpy
+```
+
+- Python 3.8+
+- Dependencies: pandas, pyarrow (for parquet support)
