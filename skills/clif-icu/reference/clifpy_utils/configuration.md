@@ -26,6 +26,7 @@ Create a `clif_config.json` file in your project directory:
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `output_directory` | string | `./output` | Where to save logs and validation results |
+| `clif_version` | string | current default from `clifpy.schemas.DEFAULT_CLIF_VERSION` (`"2.1"` as of clifpy 0.5.0) | Which CLIF data dictionary version's schemas to validate against (`clifpy/schemas/<clif_version>/*_schema.yaml`) |
 
 ---
 

@@ -2,7 +2,15 @@
 
 This folder contains the core utility functions from the clifpy Python library. These Python files are kept as authoritative code references for understanding clifpy's internal logic.
 
-> **Staleness note:** These `.py` files are a point-in-time snapshot. clifpy's validator module in particular has expanded substantially since this snapshot into a full data-quality-assessment (DQA) framework — `run_full_dqa()`, `run_conformance_checks()`, `run_completeness_checks()`, and a family of `check_*` functions (`check_required_columns`, `check_categorical_values`, `check_mcide_value_coverage`, etc.), plus PDF/CSV report generation in `report_generator.py`. The older `validate_table()` / `verify_column_dtypes()` names shown below are **not** part of the current (0.5.0) `clifpy.utils` public API — treat this file as illustrative and confirm exact function names against the installed package (`python -c "import clifpy.utils as u; print(dir(u))"`) before writing code against it.
+> **Current as of clifpy 0.5.0.** These `.py` files (and `__init__.py`'s export list) mirror the `v0.5.0` release tag verbatim for the 14 files in this folder. clifpy 0.5.0 also ships 8 modules this skill deliberately does not vendor — each is one clause below with a pointer to the upstream source:
+>
+> - `ase.py` — CDC Adult Sepsis Event surveillance calculator
+> - `crosswalk.py` / `migrate_versions_2_1_to_3.py` — CLIF 2.1 -> 3.0 schema/mCIDE value migration tooling
+> - `rule_codes.py` — DQA rule code registry backing `validator.py`'s issue codes
+> - `report_generator.py` — PDF/CSV report generation for DQA results (adds a `reportlab` dependency)
+> - `io_polars.py` / `datetime_polars.py` / `sofa_polars.py` — polars-native performance variants of `io.py` / the datetime helpers / `sofa.py`
+>
+> See [`Common-Longitudinal-ICU-data-Format/clifpy` `clifpy/utils/`](https://github.com/Common-Longitudinal-ICU-data-Format/clifpy/tree/v0.5.0/clifpy/utils) for these. Separately, the refreshed `validator.py` and `config.py` reference `DEFAULT_CLIF_VERSION` / `load_schema` from clifpy's core `clifpy/schemas` package — not one of the 8 modules above, and not vendored in this folder either.
 
 ---
 
@@ -11,7 +19,7 @@ This folder contains the core utility functions from the clifpy Python library. 
 | File | Purpose | Key Functions |
 |------|---------|---------------|
 | [config.py](config.py) | Configuration loading | `load_config()`, `get_config_or_params()`, `create_example_config()` |
-| [io.py](io.py) | Data loading (CSV/Parquet via DuckDB) | `load_data()`, `load_parquet_with_tz()` |
+| [io.py](io.py) | Data loading (CSV/Parquet via DuckDB) | `load_data()`, `load_parquet_with_tz()`, `LazyRelation`, `fetch_lazy_result()` |
 | [validator.py](validator.py) | Table validation / DQA (schema, types, ranges) | `run_full_dqa()`, `check_required_columns()`, `check_categorical_values()`, `check_for_duplicates()` |
 | [sofa.py](sofa.py) | SOFA score calculation | `compute_sofa()`, `_impute_pao2_from_spo2()`, `_agg_extremal_values_by_id()` |
 | [comorbidity.py](comorbidity.py) | CCI/Elixhauser calculation | `calculate_elix()`, `calculate_cci()` |
@@ -77,6 +85,8 @@ Calculates comorbidity scores from ICD diagnosis codes.
 - Charlson Comorbidity Index from ICD codes
 - Returns weighted comorbidity score
 
+**ICD code matching (clifpy 0.5.0+):** diagnosis codes are cleaned by lowercasing and stripping all periods (`"I25.2"` -> `"i252"`), then matched against lowercased condition codes with `starts_with`. This fixes a prior bug where codes were truncated at the *first* period (`"I25.2"` -> `"I25"`), silently missing matches against any condition code more specific than a 3-character category — e.g. CCI's `myocardial_infarction` list is `["I21", "I22", "I252"]`, and the old logic never matched a raw `"I25.2"` diagnosis against `"I252"`.
+
 ---
 
 ### [stitching_encounters.py](stitching_encounters.py) - Encounter Stitching
@@ -130,6 +140,8 @@ Loads CLIF tables from CSV or Parquet files using DuckDB for efficient querying.
 - Automatic ID column casting to string
 - Support for filters and column selection at load time
 
+**Lazy loading (clifpy 0.5.0+):** `load_data(..., lazy=True)` / `load_parquet_with_tz(..., lazy=True)` return a `LazyRelation` (a DuckDB relation wrapper) instead of a `pd.DataFrame`, so filter/limit/aggregate operations chain without executing until `fetchdf()` is called — memory-efficient for large datasets. Use `fetch_lazy_result()` to fetch and apply the standard post-processing (ID casting, timezone conversion) in one call, and `close_lazy_relation()` (or `.close()`) to release the connection when done.
+
 ---
 
 ### [validator.py](validator.py) - Table Validation / DQA
@@ -145,7 +157,7 @@ Comprehensive validation and data-quality-assessment (DQA) module for CLIF table
 - Numeric range validation
 - Relational integrity checks across tables
 
-**Current entry points:** `run_full_dqa()` (runs conformance + completeness checks and returns a combined result), `run_conformance_checks()`, `run_completeness_checks()`, `run_relational_integrity_checks()`. Pair with `report_generator.py`'s `generate_combined_report()` / `generate_validation_pdf()` to produce a DQA report artifact.
+**Current entry points:** `run_full_dqa()` (runs conformance + completeness checks and returns a combined result), `run_conformance_checks()`, `run_completeness_checks()`, `run_relational_integrity_checks()`. Upstream clifpy pairs these with `report_generator.py`'s `generate_combined_report()` / `generate_validation_pdf()` to produce a PDF/CSV DQA report artifact; that module is one of the 8 not vendored in this folder (see the note at the top of this file) — call `run_full_dqa()` directly for the structured result if you don't need a rendered report.
 
 ---
 
