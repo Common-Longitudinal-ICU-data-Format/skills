@@ -64,7 +64,6 @@ Schema drift was substantive, not cosmetic:
 ## Scope Boundaries
 
 - No CLIF v3.0 content (still prerelease-only).
-- No CI wiring for the currency script (manual/on-release invocation).
 
 ## Follow-up: v2.1.1 adoption (same day)
 
@@ -85,3 +84,12 @@ skill's target was bumped to v2.1.1:
   schemas still validate v2.1.1 data — the re-vendored schemas need no change.
 - Updated version claims in `SKILL.md` and the `mCIDE/README.md` currency note;
   bumped marketplace to 1.2.3.
+
+## Follow-up: CI drift guard (same day)
+
+The currency script is now wired into CI at
+`.github/workflows/clifpy-currency.yml` — it runs on pushes/PRs that touch the
+vendored `schemas/`, `reference/clifpy_utils/`, or the script itself, plus a
+weekly cron (Mondays 06:00 UTC) so a new clifpy release surfaces drift even
+when nobody edits those files. `workflow_dispatch` accepts an optional
+`clifpy_tag` to preview drift a bump would introduce.

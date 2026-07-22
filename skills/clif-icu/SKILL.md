@@ -159,6 +159,8 @@ scripts/check_clifpy_currency.sh            # check against the pinned v0.5.0
 scripts/check_clifpy_currency.sh v0.6.0     # preview drift a version bump would introduce
 ```
 
+CI runs this automatically (`.github/workflows/clifpy-currency.yml`) on PRs/pushes that touch the vendored files and on a weekly schedule, so drift fails a check rather than going unnoticed.
+
 ---
 
 ## Reference Files
