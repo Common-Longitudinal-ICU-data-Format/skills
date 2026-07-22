@@ -11,6 +11,8 @@ We have constructed a minimum set of Common ICU Data Elements (mCIDE) with follo
 
 `*_category` variables are CIDEs. For more details, explore the [CLIF Website](https://clif-consortium.github.io/website/mCIDE.html).
 
+> **Currency (verified 2026-07-22):** Every category list here that clifpy enumerates in its bundled schemas — `adt` (location_category/location_type), `hospitalization`, `labs`, `medication_admin_continuous` (med_category), `patient` (race/ethnicity/sex/language), `patient_assessments`, `position`, `respiratory_support`, `vitals` — is an exact match to clifpy `v0.5.0` (`clifpy/schemas/2.1/`). The remaining lists (microbiology organisms, susceptibility, code_status, crrt modes, med routes, procedures, invasive_hemodynamics, key_icu_orders) are not enumerated in clifpy schemas; their authority is the [main CLIF mCIDE repo](https://github.com/Common-Longitudinal-ICU-data-Format/CLIF/tree/main/mCIDE).
+
 ### Reference Materials
 - **`00_mCIDE_mapping_examples/`** - Example mapping files for different institutions
 - **`01_archives/`** - Archived vocabulary files and legacy mappings 

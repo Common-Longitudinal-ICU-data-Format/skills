@@ -14,6 +14,8 @@ pip install --upgrade clifpy
 > **Data dictionary version:** This skill targets **CLIF v2.1.0** — the current stable public release (verified against [clif-icu.com](https://clif-icu.com/) and the [CLIF GitHub org](https://github.com/Common-Longitudinal-ICU-data-Format) on 2026-07-22). **CLIF v3.0.0** exists only as a prerelease multimodal release (imaging, clinical notes, table renames like `crrt_therapy`→`renal_replacement_therapy` and `ecmo_mcs`→`mcs`) and is **not** the default — do not assume v3.0 table/field names unless a project explicitly declares that data dictionary version.
 >
 > **clifpy version:** Latest release is **0.5.0** (2026-06-11). Always `pip install --upgrade clifpy` rather than pinning an old version — the [validator/DQA API](reference/clifpy_utils/clifpy_functions.md) in particular has changed substantially across recent releases.
+>
+> **Vendored artifacts:** The [`schemas/`](schemas/) YAMLs and [`reference/clifpy_utils/`](reference/clifpy_utils/) `.py` files are vendored **verbatim** from clifpy `v0.5.0` (schemas from `clifpy/schemas/2.1/`). The [`mCIDE/`](mCIDE/) category CSVs are verified current against those schemas. Run [`scripts/check_clifpy_currency.sh`](scripts/check_clifpy_currency.sh) after any clifpy release to detect drift before trusting these files.
 
 ---
 
@@ -147,6 +149,14 @@ SOFA score computation workflow:
 ```python
 from clifpy.clif_orchestrator import ClifOrchestrator
 from clifpy.utils.sofa import REQUIRED_SOFA_CATEGORIES_BY_TABLE
+```
+
+### check_clifpy_currency.sh
+Maintenance utility (not an analysis workflow). Downloads a pinned clifpy release and diffs the vendored `schemas/*.yaml` and `reference/clifpy_utils/*.py` against upstream, reporting drift. Run it after each clifpy release to catch silent staleness:
+
+```bash
+scripts/check_clifpy_currency.sh            # check against the pinned v0.5.0
+scripts/check_clifpy_currency.sh v0.6.0     # preview drift a version bump would introduce
 ```
 
 ---
