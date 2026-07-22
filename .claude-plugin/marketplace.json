@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "CLIF ICU data format and clifpy Python library skills",
-    "version": "1.2.2"
+    "version": "1.2.3"
   },
   "plugins": [
     {

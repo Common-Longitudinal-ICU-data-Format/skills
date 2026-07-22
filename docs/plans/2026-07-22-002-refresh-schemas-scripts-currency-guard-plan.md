@@ -64,6 +64,24 @@ Schema drift was substantive, not cosmetic:
 ## Scope Boundaries
 
 - No CLIF v3.0 content (still prerelease-only).
-- Non-clifpy-enumerated mCIDE lists not re-verified against the main CLIF repo
-  this pass (documented as a known second source of truth).
 - No CI wiring for the currency script (manual/on-release invocation).
+
+## Follow-up: v2.1.1 adoption (same day)
+
+After shipping U1–U4, verification against the main CLIF repo revealed that
+**v2.1.1** — not v2.1.0 — is the latest non-prerelease CLIF release (published
+2026-01-02; v3.0.0 and v2.2.0 remain prereleases, v2.2.0 marked OBSOLETE). The
+skill's target was bumped to v2.1.1:
+
+- Re-vendored the two mCIDE files that v2.1.1 patched from the main CLIF repo at
+  tag `v2.1.1`: `labs/clif_lab_categories.csv` (descriptive `notes` column moved
+  to end, `lab_order_category` regroupings) and
+  `microbiology_culture/clif_microbiology_culture_organism_categories.csv`
+  (removed misspelled `citrobacter_koserii`, de-duplicated
+  `clostridium_difficile` into `clostridioides_difficile`). All other 35 mCIDE
+  files were already byte-identical to v2.1.1.
+- v2.1.1 changed only descriptive/grouping columns and de-duplication; the
+  `*_category` value lists are **unchanged** from v2.1.0, so clifpy 0.5.0's `2.1`
+  schemas still validate v2.1.1 data — the re-vendored schemas need no change.
+- Updated version claims in `SKILL.md` and the `mCIDE/README.md` currency note;
+  bumped marketplace to 1.2.3.

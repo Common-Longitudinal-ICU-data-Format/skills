@@ -11,7 +11,7 @@ description: Analyzes ICU clinical data using the Common Longitudinal ICU data F
 pip install --upgrade clifpy
 ```
 
-> **Data dictionary version:** This skill targets **CLIF v2.1.0** — the current stable public release (verified against [clif-icu.com](https://clif-icu.com/) and the [CLIF GitHub org](https://github.com/Common-Longitudinal-ICU-data-Format) on 2026-07-22). **CLIF v3.0.0** exists only as a prerelease multimodal release (imaging, clinical notes, table renames like `crrt_therapy`→`renal_replacement_therapy` and `ecmo_mcs`→`mcs`) and is **not** the default — do not assume v3.0 table/field names unless a project explicitly declares that data dictionary version.
+> **Data dictionary version:** This skill targets **CLIF v2.1.1** — the current stable public release (the latest non-prerelease CLIF tag, verified against [clif-icu.com](https://clif-icu.com/) and the [CLIF GitHub org](https://github.com/Common-Longitudinal-ICU-data-Format) on 2026-07-22). v2.1.1 is a data-quality patch over v2.1.0 (corrected lab `notes`/`lab_order_category` groupings and de-duplicated microbiology organism categories); the `*_category` value lists are unchanged, so clifpy 0.5.0's `2.1` schemas validate v2.1.1 data. **CLIF v3.0.0** exists only as a prerelease multimodal release (imaging, clinical notes, table renames like `crrt_therapy`→`renal_replacement_therapy` and `ecmo_mcs`→`mcs`) and is **not** the default — do not assume v3.0 table/field names unless a project explicitly declares that data dictionary version.
 >
 > **clifpy version:** Latest release is **0.5.0** (2026-06-11). Always `pip install --upgrade clifpy` rather than pinning an old version — the [validator/DQA API](reference/clifpy_utils/clifpy_functions.md) in particular has changed substantially across recent releases.
 >
@@ -214,7 +214,7 @@ CLIF v3.0 is tagged as a prerelease on GitHub (multimodal focus). When a project
 - **mCIDE breaking changes**: all category values move to lowercase snake_case; `lab_specimen_category` replaces source-prefixed lab names
 - 240+ new mCIDE values across medications, labs, assessments, respiratory support, and microbiology
 
-Do not apply any of the above to a v2.1.0 project. Re-check [clif-icu.com/data-dictionary/change-log](https://clif-icu.com/data-dictionary/change-log) before assuming v3.0 has become the default.
+Do not apply any of the above to a v2.1.x project. Re-check [clif-icu.com/data-dictionary/change-log](https://clif-icu.com/data-dictionary/change-log) before assuming v3.0 has become the default.
 
 ---
 
