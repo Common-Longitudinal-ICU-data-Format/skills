@@ -2,6 +2,8 @@
 
 This folder contains the core utility functions from the clifpy Python library. These Python files are kept as authoritative code references for understanding clifpy's internal logic.
 
+> **Staleness note:** These `.py` files are a point-in-time snapshot. clifpy's validator module in particular has expanded substantially since this snapshot into a full data-quality-assessment (DQA) framework — `run_full_dqa()`, `run_conformance_checks()`, `run_completeness_checks()`, and a family of `check_*` functions (`check_required_columns`, `check_categorical_values`, `check_mcide_value_coverage`, etc.), plus PDF/CSV report generation in `report_generator.py`. The older `validate_table()` / `verify_column_dtypes()` names shown below are **not** part of the current (0.5.0) `clifpy.utils` public API — treat this file as illustrative and confirm exact function names against the installed package (`python -c "import clifpy.utils as u; print(dir(u))"`) before writing code against it.
+
 ---
 
 ## Python Function Files
@@ -10,7 +12,7 @@ This folder contains the core utility functions from the clifpy Python library. 
 |------|---------|---------------|
 | [config.py](config.py) | Configuration loading | `load_config()`, `get_config_or_params()`, `create_example_config()` |
 | [io.py](io.py) | Data loading (CSV/Parquet via DuckDB) | `load_data()`, `load_parquet_with_tz()` |
-| [validator.py](validator.py) | Table validation (schema, types, ranges) | `validate_dataframe()`, `validate_categorical_values()`, `check_for_duplicates()` |
+| [validator.py](validator.py) | Table validation / DQA (schema, types, ranges) | `run_full_dqa()`, `check_required_columns()`, `check_categorical_values()`, `check_for_duplicates()` |
 | [sofa.py](sofa.py) | SOFA score calculation | `compute_sofa()`, `_impute_pao2_from_spo2()`, `_agg_extremal_values_by_id()` |
 | [comorbidity.py](comorbidity.py) | CCI/Elixhauser calculation | `calculate_elix()`, `calculate_cci()` |
 | [wide_dataset.py](wide_dataset.py) | Wide dataset creation | `create_wide_dataset()`, `convert_wide_to_hourly()` |
@@ -130,17 +132,20 @@ Loads CLIF tables from CSV or Parquet files using DuckDB for efficient querying.
 
 ---
 
-### [validator.py](validator.py) - Table Validation
+### [validator.py](validator.py) - Table Validation / DQA
 
-Comprehensive validation module for CLIF tables.
+Comprehensive validation and data-quality-assessment (DQA) module for CLIF tables. As of clifpy 0.5.0 the recommended entry point is the DQA framework, not the older per-function calls:
 
 **Validation Checks:**
 - Column presence and data type validation
 - Castable type detection (generates warnings vs errors)
 - Missing data analysis
-- Categorical value validation against schema
+- Categorical value validation against schema (including mCIDE coverage)
 - Duplicate checking
 - Numeric range validation
+- Relational integrity checks across tables
+
+**Current entry points:** `run_full_dqa()` (runs conformance + completeness checks and returns a combined result), `run_conformance_checks()`, `run_completeness_checks()`, `run_relational_integrity_checks()`. Pair with `report_generator.py`'s `generate_combined_report()` / `generate_validation_pdf()` to produce a DQA report artifact.
 
 ---
 

@@ -1,6 +1,6 @@
 # CLIF Tables Reference
 
-Complete reference for all 20 CLIF tables with schema links and available categories.
+Complete reference for all 18 CLIF tables implemented by clifpy (CLIF v2.1.0 data dictionary; two additional YAML files in [schemas/](../schemas/) — `outlier_config.yaml` and `wide_tables_config.yaml` — are configuration, not tables) with schema links and available categories.
 
 ---
 
@@ -34,7 +34,7 @@ vitals = Vitals.from_file(
 | **Table Schema** | [schemas/labs_schema.yaml](../schemas/labs_schema.yaml) |
 | **Category Values** | [mCIDE/labs/](../mCIDE/labs/clif_lab_categories.csv) |
 | **Category Column** | `lab_category` |
-| **Count** | 53 categories |
+| **Count** | 52 categories |
 | **Order Groups** | blood_gas, bmp, cbc, coags, lft, misc |
 
 **Common Categories:**
@@ -62,7 +62,7 @@ labs = Labs.from_file(
 | **Table Schema** | [schemas/patient_assessments_schema.yaml](../schemas/patient_assessments_schema.yaml) |
 | **Category Values** | [mCIDE/patient_assessments/](../mCIDE/patient_assessments/clif_patient_assessment_categories.csv) |
 | **Category Column** | `assessment_category` |
-| **Count** | 72 categories |
+| **Count** | 71 categories |
 
 **By Group:**
 - **Neurological:** gcs_total, gcs_eye, gcs_motor, gcs_verbal, AVPU, APGAR
