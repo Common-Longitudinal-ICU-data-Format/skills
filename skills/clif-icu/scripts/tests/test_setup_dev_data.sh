@@ -53,8 +53,13 @@ STUB
 cat > "$STUBDIR/python3" <<'STUB'
 #!/usr/bin/env bash
 # Minimal python interpreter stub for setup_dev_data.sh.
-if [ "${1:-}" = "-c" ]; then                   # import clifpy preflight
+if [ "${1:-}" = "-c" ]; then                   # clifpy preflight import
   [ -n "${STUB_FAIL_CLIFPY:-}" ] && exit 1
+  # Simulate an OLDER clifpy that imports but lacks create_example_config:
+  # the preflight imports the exact symbol, so this branch must fail on it.
+  if [ -n "${STUB_OLD_CLIFPY:-}" ] && [[ "${2:-}" == *create_example_config* ]]; then
+    exit 1
+  fi
   exit 0
 fi
 if [ "${1:-}" = "-m" ]; then
@@ -121,8 +126,13 @@ run_case "failed generation is not green" 2 "Sandbox NOT ready" "Non-PHI sandbox
   STUB_FAIL_GEN=1
 
 # D. clifpy missing -> fail fast (exit 2, install hint) BEFORE any clone.
-run_case "clifpy preflight fails before clone" 2 "pip install clifpy" "Cloning" \
+run_case "clifpy preflight fails before clone" 2 "pip install -U clifpy" "Cloning" \
   STUB_FAIL_CLIFPY=1
+
+# D2. clifpy present but too OLD (no create_example_config) -> preflight still
+# fails fast before clone, because it imports the exact symbol, not bare clifpy.
+run_case "old clifpy without create_example_config fails before clone" 2 "create_example_config" "Cloning" \
+  STUB_OLD_CLIFPY=1
 
 # E. Bad pin ref -> loud failure, not a silent run of whatever is checked out.
 run_case "unknown pin ref fails loudly" 2 "not found" "Non-PHI sandbox ready" \

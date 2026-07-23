@@ -51,9 +51,15 @@ if CONFIG_PATH != DEMO_CONFIG_PATH and os.environ.get("CLIF_ALLOW_REAL_DATA") !=
         "CLIF_ALLOW_REAL_DATA=1 to confirm. See reference/phi-safe-development.md."
     )
 
-# Small-cell suppression: never print a cohort size or distribution below the site
-# threshold, since small cohorts can re-identify patients (reference/phi-safe-development.md).
+# Small-cell suppression: never print a cohort size, record count, or distribution below
+# the site threshold, since small counts can re-identify patients (reference/phi-safe-development.md).
 SMALL_CELL_THRESHOLD = int(os.environ.get("CLIF_SMALL_CELL_THRESHOLD", "11"))
+
+
+def safe_count(n):
+    """Display a count, suppressing small cells below SMALL_CELL_THRESHOLD."""
+    n = int(n)
+    return f"{n:,}" if n >= SMALL_CELL_THRESHOLD else f"<suppressed (n<{SMALL_CELL_THRESHOLD})>"
 
 # CLIF schema version this code targets. Ask the researcher which version their data
 # is in before writing analysis code — 2.1 (stable) and 3.0 (multimodal) differ in
@@ -116,7 +122,7 @@ cohort_df = pd.DataFrame({
 # cohort_df['start_time'] = pd.to_datetime(cohort_df['your_start_column'])
 # cohort_df['end_time'] = cohort_df['start_time'] + pd.Timedelta(hours=TIME_WINDOW_HOURS)
 
-print(f"✓ Cohort prepared: {len(cohort_df):,} hospitalizations")
+print(f"✓ Cohort prepared: {safe_count(len(cohort_df))} hospitalizations")
 
 # Get list of hospitalization IDs for filtering
 hosp_ids = cohort_df['hospitalization_id'].astype(str).unique().tolist()
@@ -135,7 +141,7 @@ co.load_table(
     },
     columns=['hospitalization_id', 'lab_result_dttm', 'lab_category', 'lab_value_numeric']
 )
-print(f"  ✓ Labs loaded: {len(co.labs.df):,} records")
+print(f"  ✓ Labs loaded: {safe_count(len(co.labs.df))} records")
 
 # Load vitals (MAP, SpO2, weight for dose calculations)
 co.load_table(
@@ -146,7 +152,7 @@ co.load_table(
     },
     columns=['hospitalization_id', 'recorded_dttm', 'vital_category', 'vital_value']
 )
-print(f"  ✓ Vitals loaded: {len(co.vitals.df):,} records")
+print(f"  ✓ Vitals loaded: {safe_count(len(co.vitals.df))} records")
 
 # Load patient assessments (GCS for neurological SOFA)
 co.load_table(
@@ -157,7 +163,7 @@ co.load_table(
     },
     columns=['hospitalization_id', 'recorded_dttm', 'assessment_category', 'numerical_value']
 )
-print(f"  ✓ Patient assessments loaded: {len(co.patient_assessments.df):,} records")
+print(f"  ✓ Patient assessments loaded: {safe_count(len(co.patient_assessments.df))} records")
 
 # Load continuous medications (vasopressors for cardiovascular SOFA)
 co.load_table(
@@ -167,7 +173,7 @@ co.load_table(
         'med_category': ['norepinephrine', 'epinephrine', 'dopamine', 'dobutamine']
     }
 )
-print(f"  ✓ Medications loaded: {len(co.medication_admin_continuous.df):,} records")
+print(f"  ✓ Medications loaded: {safe_count(len(co.medication_admin_continuous.df))} records")
 
 # Load respiratory support (for FiO2 in respiratory SOFA)
 co.load_table(
@@ -177,7 +183,7 @@ co.load_table(
     },
     columns=['hospitalization_id', 'recorded_dttm', 'device_category', 'fio2_set']
 )
-print(f"  ✓ Respiratory support loaded: {len(co.respiratory_support.df):,} records")
+print(f"  ✓ Respiratory support loaded: {safe_count(len(co.respiratory_support.df))} records")
 
 print("✓ All SOFA tables loaded")
 
@@ -195,7 +201,7 @@ med_df = med_df[~med_df['med_dose_unit'].astype(str).str.lower().isin(['nan', 'n
 
 # Update the table
 co.medication_admin_continuous.df = med_df
-print(f"✓ Removed null doses: {initial_med_count:,} → {len(med_df):,} records")
+print(f"✓ Removed null doses: {safe_count(initial_med_count)} → {safe_count(len(med_df))} records")
 
 # =============================================================================
 # Convert Medication Units for SOFA
@@ -230,9 +236,10 @@ med_df_success = med_df_converted[med_df_converted['_convert_status'] == 'succes
 co.medication_admin_continuous.df_converted = med_df_success
 
 conversion_removed_count = converted_initial_count - len(med_df_success)
-print(f"✓ Filtered: {converted_initial_count:,} → {len(med_df_success):,} records")
+print(f"✓ Filtered: {safe_count(converted_initial_count)} → {safe_count(len(med_df_success))} records")
 if converted_initial_count > 0:
-    print(f"  Removed {conversion_removed_count:,} failed conversions ({conversion_removed_count/converted_initial_count*100:.1f}%)")
+    # Percentage is non-identifying (a ratio, not a count); the raw removed count is suppressed.
+    print(f"  Removed {safe_count(conversion_removed_count)} failed conversions ({conversion_removed_count/converted_initial_count*100:.1f}%)")
 
 # =============================================================================
 # Create Wide Dataset for SOFA

@@ -296,7 +296,7 @@ data (and therefore your code) targets:
 
 | Value | Meaning |
 |-------|---------|
-| `2.1` (default) | Current stable data dictionary; what `synthetic_clif`, `clifpy`'s bundled demo data, and MIMIC-IV-Ext-CLIF emit. |
+| `2.1` (default) | Current stable data dictionary; what `synthetic_clif` and MIMIC-IV-Ext-CLIF emit. |
 | `3.0` | Breaking multimodal release (July 2026). Adds imaging + clinical-notes tables; lowercase/`snake_case` category conventions; several tables still **Alpha**. |
 
 **Ask the researcher which version their real data is in before writing analysis code** —
@@ -310,16 +310,14 @@ crosswalk, a stale filter fails quietly rather than loudly.
 
 ### Dev sandboxes are CLIF 2.1
 
-`synthetic_clif` emits **CLIF 2.1.0**, and `clifpy` also bundles a small 2.1 demo cohort
-you can load with **zero setup and zero PHI**:
+`synthetic_clif` emits **CLIF 2.1.0** — stand up a sandbox with one command via
+[`scripts/setup_dev_data.sh`](../scripts/setup_dev_data.sh), then load it with
+`ClifOrchestrator(config_path=...)`. (clifpy is **not** confirmed to ship a bundled
+demo-data loader — see §1; if your installed version does, prefer it, but don't assume
+`clifpy.data.load_demo_clif` exists.)
 
-```python
-from clifpy.data import load_demo_clif
-co = load_demo_clif(tables=["respiratory_support", "labs", "vitals"])
-```
-
-Both are **dev-safe for code authoring**: `clifpy`'s `2.1` schemas validate 2.1 data, so
-an agent can write and exercise your code against them. Don't treat `synthetic_clif`'s
+It is **dev-safe for code authoring**: `clifpy`'s `2.1` schemas validate 2.1 data, so
+an agent can write and exercise your code against it. Don't treat `synthetic_clif`'s
 microbiology-organism or lab groupings as canonical — the authority is this skill's
 [`mCIDE/`](../mCIDE/) and [`schemas/`](../schemas/) files. Validation may surface grouping
 deltas against your target version; those are expected data-dictionary differences, not

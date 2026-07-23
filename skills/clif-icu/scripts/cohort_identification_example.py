@@ -114,9 +114,9 @@ clif.load_table('patient')
 clif.load_table('hospitalization')
 clif.load_table('adt')
 
-print(f"Patient: {len(clif.patient.df):,} rows")
-print(f"Hospitalization: {len(clif.hospitalization.df):,} rows")
-print(f"ADT: {len(clif.adt.df):,} rows")
+print(f"Patient: {safe_count(len(clif.patient.df))} rows")
+print(f"Hospitalization: {safe_count(len(clif.hospitalization.df))} rows")
+print(f"ADT: {safe_count(len(clif.adt.df))} rows")
 
 # =============================================================================
 # STEP 1: FILTER BY AGE AND DATE
@@ -192,7 +192,7 @@ print("Step 3: Identify CRRT Encounters")
 print("=" * 60)
 
 clif.load_table('crrt_therapy')
-print(f"CRRT therapy loaded: {len(clif.crrt_therapy.df):,} rows")
+print(f"CRRT therapy loaded: {safe_count(len(clif.crrt_therapy.df))} rows")
 
 # Merge with encounter mapping
 clif.crrt_therapy.df = clif.crrt_therapy.df.merge(
@@ -213,7 +213,7 @@ print("Step 4: Exclude ESRD (present on admission)")
 print("=" * 60)
 
 clif.load_table('hospital_diagnosis')
-print(f"Diagnoses loaded: {len(clif.hospital_diagnosis.df):,} rows")
+print(f"Diagnoses loaded: {safe_count(len(clif.hospital_diagnosis.df))} rows")
 
 # Merge with encounter mapping
 clif.hospital_diagnosis.df = clif.hospital_diagnosis.df.merge(
@@ -252,7 +252,7 @@ clif.load_table(
     columns=['hospitalization_id', 'recorded_dttm', 'vital_category', 'vital_value'],
     categories=['weight_kg']
 )
-print(f"Vitals (weight) loaded: {len(clif.vitals.df):,} rows")
+print(f"Vitals (weight) loaded: {safe_count(len(clif.vitals.df))} rows")
 
 # Merge with encounter mapping
 clif.vitals.df = clif.vitals.df.merge(

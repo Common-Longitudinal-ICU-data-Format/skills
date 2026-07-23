@@ -67,11 +67,12 @@ fi
 
 # clifpy is required for the config-writing step (create_example_config) but is NOT
 # a declared dependency of synthetic_clif, so `pip install -e synthetic_clif` does
-# not pull it in. Preflight here so we fail fast with a clear instruction instead of
-# aborting with a ModuleNotFoundError after the expensive clone/install/generate.
-"$PY" -c 'import clifpy' >/dev/null 2>&1 || {
-  echo "error: clifpy is not importable with $PY." >&2
-  echo "Install it first, then re-run:  $PY -m pip install clifpy" >&2
+# not pull it in. Preflight the EXACT symbol that step uses (not a bare `import
+# clifpy`) so an older clifpy that imports but lacks create_example_config fails fast
+# here, instead of aborting after the expensive clone/install/generate.
+"$PY" -c 'from clifpy.utils.config import create_example_config' >/dev/null 2>&1 || {
+  echo "error: clifpy (with clifpy.utils.config.create_example_config) is not importable with $PY." >&2
+  echo "Install/upgrade it first, then re-run:  $PY -m pip install -U clifpy" >&2
   exit 2
 }
 
