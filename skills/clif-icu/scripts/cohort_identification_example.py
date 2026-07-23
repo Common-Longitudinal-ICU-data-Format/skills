@@ -8,9 +8,12 @@ Based on identifying CRRT patients from CLIF 2.1 standardized tables.
 Author: Kaveri Chhikara
 """
 
-# PHI-SAFE: When an agent can see this script's output, run it only against
-# non-PHI synthetic/demo data (see reference/phi-safe-development.md).
-# Never point config at real PHI while sharing output with an agent.
+# PHI-SAFE: When an agent can see this process, run it only against non-PHI
+# synthetic/demo data (see reference/phi-safe-development.md). A real-data run
+# (CLIF_CONFIG_PATH set) must happen in your own secure environment with NO agent
+# observing — an agent session captures stdout AND uncaught tracebacks, so print
+# sanitization alone is not enough. Counts below are small-cell suppressed as
+# defense in depth, not a license to run this where an agent can watch.
 
 import os
 import pandas as pd
@@ -28,7 +31,31 @@ from clifpy.utils.stitching_encounters import stitch_encounters
 # PHI-safe default: point at the non-PHI demo config written by
 # scripts/setup_dev_data.sh. Override with CLIF_CONFIG_PATH for your own real run
 # (which you do yourself, in your secure environment, with no agent watching).
-config_path = os.environ.get("CLIF_CONFIG_PATH", "./clif_demo_config.json")
+DEMO_CONFIG_PATH = "./clif_demo_config.json"
+config_path = os.environ.get("CLIF_CONFIG_PATH", DEMO_CONFIG_PATH)
+
+# Guard against an agent session silently inheriting a researcher's real-data
+# config from the environment. A non-demo config requires explicit confirmation
+# that no agent is observing this process (stdout AND tracebacks are captured).
+if config_path != DEMO_CONFIG_PATH and os.environ.get("CLIF_ALLOW_REAL_DATA") != "1":
+    raise SystemExit(
+        f"Refusing to run: CLIF_CONFIG_PATH points at a non-demo config "
+        f"({config_path!r}). If this is a real-data run, you must be in your own "
+        "secure environment with NO agent observing this process. Re-run with "
+        "CLIF_ALLOW_REAL_DATA=1 to confirm. See reference/phi-safe-development.md."
+    )
+
+# Small-cell suppression: never print a count below the site threshold, since small
+# cohort/subgroup sizes can re-identify patients (see reference/phi-safe-development.md).
+SMALL_CELL_THRESHOLD = int(os.environ.get("CLIF_SMALL_CELL_THRESHOLD", "11"))
+
+
+def safe_count(n):
+    """Display a count, suppressing small cells below SMALL_CELL_THRESHOLD."""
+    n = int(n)
+    return f"{n:,}" if n >= SMALL_CELL_THRESHOLD else f"<suppressed (n<{SMALL_CELL_THRESHOLD})>"
+
+
 with open(config_path, 'r') as f:
     config = json.load(f)
 
@@ -87,7 +114,7 @@ all_encounters = pd.merge(
     how='inner'
 )
 
-print(f"Total hospitalizations: {all_encounters['hospitalization_id'].nunique():,}")
+print(f"Total hospitalizations: {safe_count(all_encounters['hospitalization_id'].nunique())}")
 
 # Filter for adults
 adult_encounters = all_encounters[
@@ -102,7 +129,7 @@ adult_encounters = adult_encounters[
 ]
 
 adult_hosp_ids = set(adult_encounters['hospitalization_id'].unique())
-print(f"Adult hospitalizations (2018-2024): {len(adult_hosp_ids):,}")
+print(f"Adult hospitalizations (2018-2024): {safe_count(len(adult_hosp_ids))}")
 
 # =============================================================================
 # STEP 2: STITCH ENCOUNTERS
@@ -128,8 +155,8 @@ clif.hospitalization.df = hosp_stitched
 clif.adt.df = adt_stitched
 clif.encounter_mapping = encounter_mapping
 
-print(f"Encounter blocks created: {encounter_mapping['encounter_block'].nunique():,}")
-print(f"Original hospitalizations: {len(encounter_mapping):,}")
+print(f"Encounter blocks created: {safe_count(encounter_mapping['encounter_block'].nunique())}")
+print(f"Original hospitalizations: {safe_count(len(encounter_mapping))}")
 
 # =============================================================================
 # STEP 3: IDENTIFY CRRT ENCOUNTERS
@@ -150,7 +177,7 @@ clif.crrt_therapy.df = clif.crrt_therapy.df.merge(
 )
 
 crrt_encounter_blocks = set(clif.crrt_therapy.df['encounter_block'].dropna().unique())
-print(f"Encounter blocks with CRRT: {len(crrt_encounter_blocks):,}")
+print(f"Encounter blocks with CRRT: {safe_count(len(crrt_encounter_blocks))}")
 
 # =============================================================================
 # STEP 4: EXCLUDE ESRD
@@ -184,8 +211,8 @@ esrd_mask = diagnosis_df['diagnosis_code'].apply(
 esrd_encounters = set(diagnosis_df.loc[esrd_mask, 'encounter_block'].unique())
 
 final_encounter_blocks = crrt_encounter_blocks - esrd_encounters
-print(f"ESRD encounters excluded: {len(esrd_encounters):,}")
-print(f"Remaining encounters: {len(final_encounter_blocks):,}")
+print(f"ESRD encounters excluded: {safe_count(len(esrd_encounters))}")
+print(f"Remaining encounters: {safe_count(len(final_encounter_blocks))}")
 
 # =============================================================================
 # STEP 5: CHECK WEIGHT AVAILABILITY
@@ -214,8 +241,8 @@ weight_df = clif.vitals.df[clif.vitals.df['encounter_block'].isin(final_encounte
 encounters_with_weight = set(weight_df['encounter_block'].unique())
 
 final_encounter_blocks = final_encounter_blocks & encounters_with_weight
-print(f"Encounters with weight data: {len(encounters_with_weight):,}")
-print(f"Final cohort size: {len(final_encounter_blocks):,}")
+print(f"Encounters with weight data: {safe_count(len(encounters_with_weight))}")
+print(f"Final cohort size: {safe_count(len(final_encounter_blocks))}")
 
 # =============================================================================
 # STEP 6: BUILD FINAL COHORT
@@ -241,9 +268,9 @@ cohort_df = cohort_df.merge(hosp_df, on='hospitalization_id', how='left')
 cohort_df = cohort_df.merge(patient_df, on='patient_id', how='left')
 
 print(f"\nFinal Cohort:")
-print(f"   Encounter blocks: {cohort_df['encounter_block'].nunique():,}")
-print(f"   Hospitalizations: {cohort_df['hospitalization_id'].nunique():,}")
-print(f"   Patients: {cohort_df['patient_id'].nunique():,}")
+print(f"   Encounter blocks: {safe_count(cohort_df['encounter_block'].nunique())}")
+print(f"   Hospitalizations: {safe_count(cohort_df['hospitalization_id'].nunique())}")
+print(f"   Patients: {safe_count(cohort_df['patient_id'].nunique())}")
 
 # =============================================================================
 # SAVE OUTPUT

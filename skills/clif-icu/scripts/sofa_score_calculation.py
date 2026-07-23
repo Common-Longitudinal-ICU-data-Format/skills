@@ -13,9 +13,12 @@ The SOFA score evaluates 6 organ systems:
 - Renal (creatinine)
 """
 
-# PHI-SAFE: When an agent can see this script's output, run it only against
-# non-PHI synthetic/demo data (see reference/phi-safe-development.md).
-# Never point config at real PHI while sharing output with an agent.
+# PHI-SAFE: When an agent can see this process, run it only against non-PHI
+# synthetic/demo data (see reference/phi-safe-development.md). A real-data run
+# (CLIF_CONFIG_PATH set) must happen in your own secure environment with NO agent
+# observing — an agent session captures stdout AND uncaught tracebacks, so print
+# sanitization alone is not enough. Aggregates below are small-cell suppressed as
+# defense in depth, not a license to run this where an agent can watch.
 
 import os
 import pandas as pd
@@ -33,8 +36,24 @@ warnings.filterwarnings('ignore')
 # PHI-safe default: the non-PHI demo config written by scripts/setup_dev_data.sh.
 # Override with CLIF_CONFIG_PATH for your own real run (done by you, in your secure
 # environment, with the agent absent). ClifOrchestrator parses this config natively.
-CONFIG_PATH = os.environ.get("CLIF_CONFIG_PATH", "./clif_demo_config.json")
+DEMO_CONFIG_PATH = "./clif_demo_config.json"
+CONFIG_PATH = os.environ.get("CLIF_CONFIG_PATH", DEMO_CONFIG_PATH)
 TIME_WINDOW_HOURS = 24  # Time window for SOFA calculation (e.g., first 24h) TODO PROJECT SPECIFIC
+
+# Guard against an agent session silently inheriting a researcher's real-data config
+# from the environment. A non-demo config requires explicit confirmation that no agent
+# is observing this process (stdout AND tracebacks are captured by agent sessions).
+if CONFIG_PATH != DEMO_CONFIG_PATH and os.environ.get("CLIF_ALLOW_REAL_DATA") != "1":
+    raise SystemExit(
+        f"Refusing to run: CLIF_CONFIG_PATH points at a non-demo config "
+        f"({CONFIG_PATH!r}). If this is a real-data run, you must be in your own "
+        "secure environment with NO agent observing this process. Re-run with "
+        "CLIF_ALLOW_REAL_DATA=1 to confirm. See reference/phi-safe-development.md."
+    )
+
+# Small-cell suppression: never print a cohort size or distribution below the site
+# threshold, since small cohorts can re-identify patients (reference/phi-safe-development.md).
+SMALL_CELL_THRESHOLD = int(os.environ.get("CLIF_SMALL_CELL_THRESHOLD", "11"))
 
 # =============================================================================
 # Initialize ClifOrchestrator
@@ -233,10 +252,14 @@ sofa_scores = co.compute_sofa_scores(
     create_new_wide_df=False
 )
 
-print(f"\n✓ SOFA scores computed: {sofa_scores.shape}")
-print(f"  Mean SOFA: {sofa_scores['sofa_total'].mean():.2f}")
-print(f"  Median SOFA: {sofa_scores['sofa_total'].median():.2f}")
-print(f"  Range: {sofa_scores['sofa_total'].min():.0f} - {sofa_scores['sofa_total'].max():.0f}")
+_n_scored = int(sofa_scores['sofa_total'].notna().sum())
+print(f"\n✓ SOFA scores computed: {len(sofa_scores.columns)} columns")
+if _n_scored >= SMALL_CELL_THRESHOLD:
+    print(f"  Mean SOFA: {sofa_scores['sofa_total'].mean():.2f}")
+    print(f"  Median SOFA: {sofa_scores['sofa_total'].median():.2f}")
+    print(f"  Range: {sofa_scores['sofa_total'].min():.0f} - {sofa_scores['sofa_total'].max():.0f}")
+else:
+    print(f"  Aggregate SOFA stats suppressed (cohort n<{SMALL_CELL_THRESHOLD})")
 
 # =============================================================================
 # Results
@@ -245,12 +268,15 @@ print("\n" + "=" * 60)
 print("SOFA Score Results")
 print("=" * 60)
 # PHI-safe: do NOT print per-patient rows (e.g. sofa_scores.head(10)) — on real
-# data those are PHI a watching agent would see. Print shape + columns + aggregate
-# score distribution only (no per-patient identifiers or timestamps).
-print(f"Shape: {sofa_scores.shape}")
+# data those are PHI a watching agent would see. Print columns + an aggregate score
+# distribution only, and suppress the distribution (which includes the cohort count)
+# when the cohort is below the small-cell threshold.
 print(f"Columns: {list(sofa_scores.columns)}")
 print("\nsofa_total distribution:")
-print(sofa_scores['sofa_total'].describe())
+if _n_scored >= SMALL_CELL_THRESHOLD:
+    print(sofa_scores['sofa_total'].describe())
+else:
+    print(f"  Distribution suppressed (cohort n<{SMALL_CELL_THRESHOLD})")
 
 # The sofa_scores DataFrame contains:
 # - hospitalization_id
