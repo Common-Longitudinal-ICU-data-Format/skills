@@ -30,6 +30,36 @@ Full setup, sanitization checklist, and HIPAA-channel guidance: [reference/phi-s
 
 ---
 
+## CLIF version: 2.1 (stable) vs 3.0 (multimodal)
+
+**Default to CLIF 2.1.0** — the current stable data dictionary, and what clifpy and
+`synthetic_clif` target. **CLIF 3.0** is a *breaking, major* release (July 2026) that
+goes **multimodal**: it adds imaging and clinical-notes tables (e.g. `clinical_notes_facts`,
+`airway`) and renames many `*_category`/`*_group`/`*_type` values to a lowercase/`snake_case`
+convention (`IMV` → `imv`, `High Flow NC` → `hfnc`). Several 3.0 tables are still **Alpha**
+("changes remain likely") — treat the [3.0 data dictionary](https://clif-icu.com/data-dictionary/data-dictionary-3.0.0)
+as the authority, not this file. *(Verified 2026-07-23; re-check before relying.)*
+
+**Toggle:** set the `CLIF_SCHEMA_VERSION` environment variable to `2.1` (default) or
+`3.0`. **Ask the researcher which CLIF version their data is in before writing code** —
+the value conventions and table set differ.
+
+**clifpy ships both schemas.** It does not switch version on `ClifOrchestrator`; instead
+you migrate or validate against an explicit version. Migrate 2.1 → 3.0 with
+`crosswalk_table_2_1_to_3_0(df, table)` (in memory), `crosswalk_file_2_1_to_3_0(...)`
+(out-of-core), or `CrosswalkMigrationRunner(config_path=...).run(dry_run=True)` (whole
+site); validate against a version with `load_schema(table, "3.0")`. Some values are
+**ambiguous** and need a human decision (e.g. `albumin` → `albumin_5`/`albumin_25`) —
+never let an agent auto-resolve those. Full details and code:
+[reference/phi-safe-development.md](reference/phi-safe-development.md).
+
+**PHI note:** 3.0's clinical notes and imaging are the *most PHI-dense* data in CLIF. By
+design CLIF holds only note **metadata** (the text is provisioned just-in-time, not stored
+in CLIF) — mirror that discipline: the PHI-safe rules above apply *doubly* to notes and
+imaging, which an agent must never receive.
+
+---
+
 ## When to Use This Skill
 
 Activate this skill when:

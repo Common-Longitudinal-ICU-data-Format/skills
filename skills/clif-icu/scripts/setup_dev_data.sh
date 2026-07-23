@@ -17,8 +17,10 @@
 #   scripts/setup_dev_data.sh [DEST_DIR] [N_HOSPITALIZATIONS]
 #     DEST_DIR            where to write generated data (default: ./dev_data)
 #     N_HOSPITALIZATIONS  cohort size for fast iteration  (default: 100)
-#   Env: CLIF_SYNTHETIC_REF  synthetic_clif tag/branch/SHA to pin (default v0.7.0)
-#        CLIF_DEV_TZ         timezone for the demo config       (default US/Central)
+#   Env: CLIF_SYNTHETIC_REF    synthetic_clif tag/branch/SHA to pin (default v0.7.0)
+#        CLIF_DEV_TZ           timezone for the demo config       (default US/Central)
+#        CLIF_SCHEMA_VERSION   target CLIF version 2.1|3.0        (default 2.1; the
+#                              sandbox always emits 2.1 — 3.0 needs clifpy crosswalk)
 #
 # Failure-path tests (network-free): scripts/tests/test_setup_dev_data.sh
 #
@@ -39,6 +41,15 @@ TIMEZONE="${CLIF_DEV_TZ:-US/Central}"
 # newer tags with `git ls-remote --tags $REPO_URL`). Override to track a different
 # tag/branch/SHA, or set CLIF_SYNTHETIC_REF=main to intentionally follow upstream.
 SYNTHETIC_REF="${CLIF_SYNTHETIC_REF:-v0.7.0}"
+# CLIF schema version the caller intends to target. This sandbox always GENERATES
+# CLIF 2.1 (that is what synthetic_clif emits), so 3.0 work must migrate the 2.1 data
+# with clifpy's crosswalk as a deliberate, audited step — see §6 of the reference doc.
+# We surface the value here so a 2.1-vs-3.0 mismatch is visible up front.
+CLIF_SCHEMA_VERSION="${CLIF_SCHEMA_VERSION:-2.1}"
+case "$CLIF_SCHEMA_VERSION" in
+  2.1|3.0) ;;
+  *) echo "error: CLIF_SCHEMA_VERSION='$CLIF_SCHEMA_VERSION' unsupported (want 2.1 or 3.0)." >&2; exit 2 ;;
+esac
 
 command -v git >/dev/null 2>&1 || { echo "error: git not found" >&2; exit 2; }
 # Prefer python3, fall back to python. Route ALL python/pip calls through "$PY"
@@ -64,6 +75,12 @@ fi
 echo "== PHI-safe dev-data setup =="
 echo "This creates NON-PHI synthetic CLIF data only. Never point clifpy at real"
 echo "PHI while an agent can see the output (see reference/phi-safe-development.md)."
+if [ "$CLIF_SCHEMA_VERSION" != "2.1" ]; then
+  echo
+  echo "NOTE: CLIF_SCHEMA_VERSION=$CLIF_SCHEMA_VERSION requested, but this sandbox emits"
+  echo "CLIF 2.1. Migrate to $CLIF_SCHEMA_VERSION with clifpy's crosswalk (audited step) —"
+  echo "see reference/phi-safe-development.md §6."
+fi
 echo
 
 # 1. clone synthetic_clif and check out the pinned ref

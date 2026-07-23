@@ -55,6 +55,20 @@ if CONFIG_PATH != DEMO_CONFIG_PATH and os.environ.get("CLIF_ALLOW_REAL_DATA") !=
 # threshold, since small cohorts can re-identify patients (reference/phi-safe-development.md).
 SMALL_CELL_THRESHOLD = int(os.environ.get("CLIF_SMALL_CELL_THRESHOLD", "11"))
 
+# CLIF schema version this code targets. Ask the researcher which version their data
+# is in before writing analysis code — 2.1 (stable) and 3.0 (multimodal) differ in
+# category conventions and table set. We only DECLARE the version here (and echo it so
+# a mismatch is visible early); we do NOT auto-crosswalk. The SOFA filter values below
+# (e.g. 'creatinine', 'norepinephrine') are already lowercase and stable across both
+# versions, and blindly crosswalking would double-convert native-3.0 data. Migration
+# is a deliberate, audited step — see reference/phi-safe-development.md §6.
+CLIF_SCHEMA_VERSION = os.environ.get("CLIF_SCHEMA_VERSION", "2.1")
+if CLIF_SCHEMA_VERSION not in ("2.1", "3.0"):
+    raise SystemExit(
+        f"Unsupported CLIF_SCHEMA_VERSION={CLIF_SCHEMA_VERSION!r}; expected '2.1' or '3.0'. "
+        "See reference/phi-safe-development.md §6."
+    )
+
 # =============================================================================
 # Initialize ClifOrchestrator
 # =============================================================================
@@ -62,6 +76,7 @@ print("=" * 60)
 print("SOFA Score Calculation")
 print("=" * 60)
 
+print(f"\nTargeting CLIF schema version: {CLIF_SCHEMA_VERSION}")
 print("\nInitializing ClifOrchestrator...")
 co = ClifOrchestrator(config_path=CONFIG_PATH)
 print("✓ ClifOrchestrator initialized")

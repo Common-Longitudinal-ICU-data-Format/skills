@@ -56,6 +56,19 @@ def safe_count(n):
     return f"{n:,}" if n >= SMALL_CELL_THRESHOLD else f"<suppressed (n<{SMALL_CELL_THRESHOLD})>"
 
 
+# CLIF schema version this code targets. Ask the researcher which version their data
+# is in before writing analysis code — 2.1 (stable) and 3.0 (multimodal) differ in
+# category conventions and table set. We only DECLARE the version here (and echo it so
+# a mismatch is visible early); we do NOT auto-crosswalk. Migration 2.1 -> 3.0 is a
+# deliberate, audited step (see reference/phi-safe-development.md §6).
+CLIF_SCHEMA_VERSION = os.environ.get("CLIF_SCHEMA_VERSION", "2.1")
+if CLIF_SCHEMA_VERSION not in ("2.1", "3.0"):
+    raise SystemExit(
+        f"Unsupported CLIF_SCHEMA_VERSION={CLIF_SCHEMA_VERSION!r}; expected '2.1' or '3.0'. "
+        "See reference/phi-safe-development.md §6."
+    )
+
+
 with open(config_path, 'r') as f:
     config = json.load(f)
 
@@ -67,6 +80,7 @@ timezone = config["timezone"]
 
 # Do NOT print the data directory path or any row values — on real data those can
 # reveal PHI to a watching agent. Print only non-identifying settings.
+print(f"Targeting CLIF schema version: {CLIF_SCHEMA_VERSION}")
 print(f"File type: {filetype}")
 print(f"Timezone: {timezone}")
 

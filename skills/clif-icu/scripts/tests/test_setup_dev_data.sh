@@ -128,6 +128,10 @@ run_case "clifpy preflight fails before clone" 2 "pip install clifpy" "Cloning" 
 run_case "unknown pin ref fails loudly" 2 "not found" "Non-PHI sandbox ready" \
   STUB_BAD_REF=nope CLIF_SYNTHETIC_REF=nope
 
+# F. Unsupported CLIF_SCHEMA_VERSION -> reject early, before any clone.
+run_case "bad schema version rejected" 2 "unsupported" "Cloning" \
+  CLIF_SCHEMA_VERSION=9.9
+
 echo
 if [ "$fails" -eq 0 ]; then
   echo "All setup_dev_data.sh failure-path tests passed."

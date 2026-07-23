@@ -279,30 +279,96 @@ truth, check the current version, don't trust this snapshot:
 
 ---
 
-## 6. Version note: synthetic_clif emits CLIF 2.1.0
+## 6. CLIF version: 2.1 (stable) vs 3.0 (multimodal), and the toggle
 
 <!-- PLANNER NOTE (not user-facing guidance): the skill-wide "CLIF 2.1.1" currency
      claim is UNVERIFIED against a published CLIF tag (no 2.1.1 tag found via
      ref/tavily 2026-07-22; the official data dictionary version is 2.1.0). Do NOT
      resolve that claim here — it is owned by the separate v2.1.1-currency PR (#2).
-     This section deliberately makes no independent assertion that 2.1.1 is
-     published; version reconciliation lives in SKILL.md's version block. -->
+     Version reconciliation lives in SKILL.md's version block.
+     The 2.1↔3.0 facts below were verified via clifpy docs + the CLIF consortium
+     data dictionary on 2026-07-23 — re-verify before relying (3.0 is stabilizing). -->
 
-`synthetic_clif` emits **CLIF 2.1.0** (the version of the current official CLIF data
-dictionary). This is **dev-safe for code authoring**: clifpy 0.5.0's `2.1` schemas
-validate 2.1.0 data, so an agent can write and exercise your code against it. For
-the skill's stance on any 2.1.0-vs-later patch differences and which CLIF version to
-target, defer to **[`../SKILL.md`](../SKILL.md)'s data-dictionary version block** —
-that is the single source of truth; this doc does not restate it.
+### The `CLIF_SCHEMA_VERSION` toggle
 
-- **Don't treat synthetic_clif's microbiology-organism or lab groupings as canonical**
-  — the authority is this skill's [`mCIDE/`](../mCIDE/) and [`schemas/`](../schemas/)
-  files.
-- **Validation may surface grouping deltas** against your target version. Those are
-  expected data-dictionary differences, not code bugs.
+Set the `CLIF_SCHEMA_VERSION` environment variable to declare which CLIF version the
+data (and therefore your code) targets:
 
-Your **real data remains the source of truth**; synthetic_clif is a development
-sandbox only.
+| Value | Meaning |
+|-------|---------|
+| `2.1` (default) | Current stable data dictionary; what `synthetic_clif`, `clifpy`'s bundled demo data, and MIMIC-IV-Ext-CLIF emit. |
+| `3.0` | Breaking multimodal release (July 2026). Adds imaging + clinical-notes tables; lowercase/`snake_case` category conventions; several tables still **Alpha**. |
+
+**Ask the researcher which version their real data is in before writing analysis code** —
+the category/value conventions and the table set differ, so code written for one version
+will mis-filter or fail validation against the other. The example scripts read this
+variable and echo the active version so a mismatch is visible early.
+
+### Dev sandboxes are CLIF 2.1
+
+`synthetic_clif` emits **CLIF 2.1.0**, and `clifpy` also bundles a small 2.1 demo cohort
+you can load with **zero setup and zero PHI**:
+
+```python
+from clifpy.data import load_demo_clif
+co = load_demo_clif(tables=["respiratory_support", "labs", "vitals"])
+```
+
+Both are **dev-safe for code authoring**: `clifpy`'s `2.1` schemas validate 2.1 data, so
+an agent can write and exercise your code against them. Don't treat `synthetic_clif`'s
+microbiology-organism or lab groupings as canonical — the authority is this skill's
+[`mCIDE/`](../mCIDE/) and [`schemas/`](../schemas/) files. Validation may surface grouping
+deltas against your target version; those are expected data-dictionary differences, not
+code bugs.
+
+### Migrating 2.1 → 3.0 (a deliberate, audited step — not automatic)
+
+`clifpy` ships **both** the 2.1 and 3.0 schemas. There is **no version switch on
+`ClifOrchestrator`**; you migrate values or validate against an explicit version.
+Migration lowercases/`snake_case`s categorical values (`IMV` → `imv`, `Non-Hispanic` →
+`non_hispanic`) and applies curated renames (`High Flow NC` → `hfnc`) — verified against
+the clifpy migration guide on 2026-07-23:
+
+```python
+# Whole site (every beta table) — audit first with dry_run.
+from clifpy.utils.migrate_versions_2_1_to_3 import CrosswalkMigrationRunner
+CrosswalkMigrationRunner(config_path="your_site.yaml").run(dry_run=True)
+
+# One in-memory table — returns (converted_df, report).
+from clifpy import crosswalk_table_2_1_to_3_0
+converted, report = crosswalk_table_2_1_to_3_0(co.respiratory_support.df, "respiratory_support")
+
+# Out-of-core (file too large for memory):
+from clifpy import crosswalk_file_2_1_to_3_0
+
+# Validate a DataFrame against a specific version's schema:
+from clifpy.schemas import load_schema
+from clifpy.utils import validator
+errors = validator.validate_dataframe(converted, load_schema("respiratory_support", "3.0"))
+```
+
+- **`report` is structured — read it.** It flags **ambiguous** values that no rule can
+  resolve (e.g. `albumin` → `albumin_5` vs `albumin_25`, by product concentration). A
+  human with domain knowledge resolves these; **an agent must not guess them.**
+- **Do not double-convert.** The crosswalk is 2.1 → 3.0. Data already in 3.0 (or loaded
+  from a 3.0 source) must not be run through it again. This is why the scripts *declare*
+  a version rather than blindly crosswalking on load.
+- **Confirm your installed clifpy exposes these** (recent builds ship the 3.0 schemas and
+  crosswalk): `python -c "from clifpy import crosswalk_table_2_1_to_3_0"`.
+
+### 3.0 is multimodal — the PHI stakes go up
+
+CLIF 3.0 adds **imaging** and **clinical notes**, the most PHI-dense data in the format.
+By design CLIF stores only note **metadata** in `clinical_notes_facts` — **the note text
+itself is not held in CLIF** (just-in-time provisioning). Mirror that discipline: the
+sanitization rules in §3 apply *doubly* to notes and imaging. A watching agent must never
+receive note text, image pixels, or DICOM metadata (which carries names, dates, and can
+contain burned-in identifiers). Several 3.0 tables are **Alpha** ("changes remain likely"),
+so treat the [3.0 data dictionary](https://clif-icu.com/data-dictionary/data-dictionary-3.0.0)
+as the authority over any snapshot in this skill.
+
+Your **real data remains the source of truth**; the synthetic/demo cohorts are development
+sandboxes only.
 
 ---
 
