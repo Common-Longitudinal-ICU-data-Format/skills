@@ -17,8 +17,8 @@
 #     DEST_DIR            where to write generated data (default: ./dev_data)
 #     N_HOSPITALIZATIONS  cohort size for fast iteration  (default: 100)
 #
-# Exit status: 0 = sandbox ready (or generation deferred with instructions),
-#              2 = setup/tooling error.
+# Exit status: 0 = sandbox ready (data generated + config written),
+#              2 = setup/tooling error OR generation did not complete (empty sandbox).
 
 set -euo pipefail
 
@@ -39,6 +39,16 @@ elif command -v python >/dev/null 2>&1; then
 else
   echo "error: neither python3 nor python found" >&2; exit 2
 fi
+
+# clifpy is required for the config-writing step (create_example_config) but is NOT
+# a declared dependency of synthetic_clif, so `pip install -e synthetic_clif` does
+# not pull it in. Preflight here so we fail fast with a clear instruction instead of
+# aborting with a ModuleNotFoundError after the expensive clone/install/generate.
+"$PY" -c 'import clifpy' >/dev/null 2>&1 || {
+  echo "error: clifpy is not importable with $PY." >&2
+  echo "Install it first, then re-run:  $PY -m pip install clifpy" >&2
+  exit 2
+}
 
 echo "== PHI-safe dev-data setup =="
 echo "This creates NON-PHI synthetic CLIF data only. Never point clifpy at real"
@@ -99,7 +109,12 @@ create_example_config(
 print(f"  wrote {config_path} -> data_directory={data_directory}")
 PY
 
-cat <<EOF
+# Only declare success when data was actually generated AND the destination is
+# non-empty. Otherwise the "sandbox ready" banner + exit 0 would be a green-while-red
+# signal: an agent (or the researcher) could conclude a non-PHI dataset exists when
+# ./dev_data is empty, and be nudged to repoint the config at real PHI to "fix" it.
+if [ "$generated" -eq 1 ] && [ -n "$(ls -A "$DEST_DIR" 2>/dev/null)" ]; then
+  cat <<EOF
 
 Done. Non-PHI sandbox ready.
 
@@ -110,3 +125,14 @@ Load it with:
 This data is synthetic and safe to share with an agent. Real PHI must only be run
 by you, in your own secure environment, with the agent absent.
 EOF
+else
+  cat >&2 <<EOF
+
+Sandbox NOT ready: no synthetic data was generated in $DEST_DIR.
+$CONFIG_PATH was written but points at an empty directory. Do NOT repoint it at
+real PHI to "get things working" — that is exactly the unsafe fallback this setup
+exists to prevent. Generate the synthetic data first (see the NOTE above), then
+re-run this script.
+EOF
+  exit 2
+fi
