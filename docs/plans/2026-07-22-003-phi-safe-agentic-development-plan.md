@@ -47,6 +47,11 @@ sandbox.
   for `setup_dev_data.sh`, Reference Files table row, Requirements bullet.
 - **U6** — `reference/clifpy_utils/configuration.md`: back-link to the new doc.
 - **U7** — `.claude-plugin/marketplace.json`: version `1.2.3` → `1.3.0`.
+  **Delivery correction (2026-07-23):** this `1.2.3 → 1.3.0` assumed sitting on
+  PR #2's unmerged `1.2.3`. PR #2 never merged, so the actual base was `1.1.0`
+  and this work shipped as **`1.1.0 → 1.2.0`** (current `marketplace.json` value).
+  The version reconciles with PR #2 at its merge time. See plan `004`'s "Delivery
+  update" for the full reconciliation.
 - **U8** — two-phase deployment toggle: develop on a consumer **Max/Pro plan + fake
   data** (fine — no PHI), then **toggle Claude to a BAA-covered channel** for real
   data — first-party API/Enterprise (Claude Code w/ ZDR) *or* Claude on a

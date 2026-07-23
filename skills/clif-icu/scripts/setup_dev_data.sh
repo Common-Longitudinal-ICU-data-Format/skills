@@ -4,7 +4,8 @@
 #
 # PHI-safe development means the AI agent only ever sees synthetic / demo data.
 # This script bootstraps that sandbox in one command:
-#   1. clone (or update) Common-Longitudinal-ICU-data-Format/synthetic_clif (MIT, no PHI)
+#   1. clone Common-Longitudinal-ICU-data-Format/synthetic_clif (MIT, no PHI) and
+#      check out a PINNED ref (default v0.7.0) for reproducible provenance
 #   2. python3 -m pip install -e .
 #   3. generate a SMALL synthetic CLIF cohort into ./dev_data
 #   4. write ./clif_demo_config.json pointing clifpy at ./dev_data
@@ -16,6 +17,10 @@
 #   scripts/setup_dev_data.sh [DEST_DIR] [N_HOSPITALIZATIONS]
 #     DEST_DIR            where to write generated data (default: ./dev_data)
 #     N_HOSPITALIZATIONS  cohort size for fast iteration  (default: 100)
+#   Env: CLIF_SYNTHETIC_REF  synthetic_clif tag/branch/SHA to pin (default v0.7.0)
+#        CLIF_DEV_TZ         timezone for the demo config       (default US/Central)
+#
+# Failure-path tests (network-free): scripts/tests/test_setup_dev_data.sh
 #
 # Exit status: 0 = sandbox ready (data generated + config written),
 #              2 = setup/tooling error OR generation did not complete (empty sandbox).
@@ -28,6 +33,12 @@ REPO_URL="https://github.com/Common-Longitudinal-ICU-data-Format/synthetic_clif"
 CLONE_DIR="./synthetic_clif"
 CONFIG_PATH="./clif_demo_config.json"
 TIMEZONE="${CLIF_DEV_TZ:-US/Central}"
+# Pin the synthetic_clif checkout to a specific ref so the CLI behavior and the
+# synthetic-data provenance are reproducible — an unpinned branch can silently
+# change between runs. Default: tag v0.7.0 (== main HEAD as of 2026-07-23; verify
+# newer tags with `git ls-remote --tags $REPO_URL`). Override to track a different
+# tag/branch/SHA, or set CLIF_SYNTHETIC_REF=main to intentionally follow upstream.
+SYNTHETIC_REF="${CLIF_SYNTHETIC_REF:-v0.7.0}"
 
 command -v git >/dev/null 2>&1 || { echo "error: git not found" >&2; exit 2; }
 # Prefer python3, fall back to python. Route ALL python/pip calls through "$PY"
@@ -55,14 +66,26 @@ echo "This creates NON-PHI synthetic CLIF data only. Never point clifpy at real"
 echo "PHI while an agent can see the output (see reference/phi-safe-development.md)."
 echo
 
-# 1. clone or update synthetic_clif
-if [ -d "$CLONE_DIR/.git" ]; then
-  echo "Updating existing $CLONE_DIR ..."
-  git -C "$CLONE_DIR" pull --ff-only || echo "  (could not fast-forward; using existing checkout)"
-else
+# 1. clone synthetic_clif and check out the pinned ref
+if [ ! -d "$CLONE_DIR/.git" ]; then
   echo "Cloning $REPO_URL ..."
   git clone "$REPO_URL" "$CLONE_DIR"
 fi
+# Fetch (tags included) so the pinned ref resolves even in an existing checkout,
+# then check it out. Fail fast if the ref does not exist rather than silently
+# running whatever happens to be checked out.
+echo "Pinning $CLONE_DIR to '$SYNTHETIC_REF' ..."
+git -C "$CLONE_DIR" fetch --tags --quiet origin || echo "  (fetch failed; using local refs)"
+if ! git -C "$CLONE_DIR" checkout --quiet "$SYNTHETIC_REF" 2>/dev/null; then
+  echo "error: synthetic_clif ref '$SYNTHETIC_REF' not found." >&2
+  echo "List available refs with:  git ls-remote --tags --heads $REPO_URL" >&2
+  echo "Then re-run with:  CLIF_SYNTHETIC_REF=<tag-or-branch> $0 $*" >&2
+  exit 2
+fi
+# Record the exact resolved commit so the provenance of the generated data is
+# auditable (a tag or branch name alone can move; the SHA cannot).
+RESOLVED_SHA="$(git -C "$CLONE_DIR" rev-parse --short HEAD)"
+echo "  synthetic_clif @ $SYNTHETIC_REF ($RESOLVED_SHA)"
 
 # 2. install
 echo "Installing synthetic_clif (editable) ..."
@@ -117,6 +140,7 @@ if [ "$generated" -eq 1 ] && [ -n "$(ls -A "$DEST_DIR" 2>/dev/null)" ]; then
   cat <<EOF
 
 Done. Non-PHI sandbox ready.
+Generated from synthetic_clif $SYNTHETIC_REF ($RESOLVED_SHA).
 
 Load it with:
     from clifpy import ClifOrchestrator

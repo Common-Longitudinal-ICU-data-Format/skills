@@ -86,6 +86,10 @@ restriction.
 ```bash
 git clone https://github.com/Common-Longitudinal-ICU-data-Format/synthetic_clif
 cd synthetic_clif
+# Pin to a tagged release so CLI behavior and data provenance are reproducible —
+# an unpinned branch can change silently between runs. (v0.7.0 == main HEAD as of
+# 2026-07-23; list current tags with `git ls-remote --tags <repo-url>`.)
+git checkout v0.7.0
 python3 -m pip install -e .
 # Generate a SMALL cohort for fast agent-loop iteration into ./dev_data.
 # (CLI verified against docs 2026-07-22; run `python3 -m synthetic_clif --help`
@@ -95,7 +99,8 @@ python3 -m synthetic_clif --hospitalizations 100 --output ./dev_data \
 ```
 
 The one-command helper [`scripts/setup_dev_data.sh`](../scripts/setup_dev_data.sh)
-automates the clone/install/generate and writes a demo config.
+automates the clone/install/generate, pins the same ref (override with
+`CLIF_SYNTHETIC_REF`), records the resolved commit SHA, and writes a demo config.
 
 ### Point clifpy at the non-PHI data
 
