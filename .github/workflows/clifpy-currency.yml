@@ -37,7 +37,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Check vendored clifpy artifacts for drift
+        # Pass the dispatch input through an env var, never interpolated directly
+        # into the run script: `"$script" ${{ github.event.inputs.clifpy_tag }}`
+        # would splice attacker-controlled text into the shell (command injection).
+        # ${CLIFPY_TAG:+...} forwards the tag as a single quoted arg only when set,
+        # so the empty default cleanly falls through to the script's PINNED_VERSION.
+        env:
+          CLIFPY_TAG: ${{ github.event.inputs.clifpy_tag }}
         run: |
           script=skills/clif-icu/scripts/check_clifpy_currency.sh
           chmod +x "$script"
-          "$script" ${{ github.event.inputs.clifpy_tag }}
+          "$script" ${CLIFPY_TAG:+"$CLIFPY_TAG"}
