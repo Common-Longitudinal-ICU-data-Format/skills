@@ -1,0 +1,50 @@
+name: clifpy currency
+
+# Guards against the clif-icu skill's vendored clifpy artifacts (schemas/*.yaml
+# and reference/clifpy_utils/*.py) silently drifting from the pinned clifpy
+# release. Runs scripts/check_clifpy_currency.sh, which downloads the pinned
+# tag and diffs the vendored files, exiting non-zero on drift.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "skills/clif-icu/schemas/**"
+      - "skills/clif-icu/reference/clifpy_utils/**"
+      - "skills/clif-icu/scripts/check_clifpy_currency.sh"
+      - ".github/workflows/clifpy-currency.yml"
+  pull_request:
+    paths:
+      - "skills/clif-icu/schemas/**"
+      - "skills/clif-icu/reference/clifpy_utils/**"
+      - "skills/clif-icu/scripts/check_clifpy_currency.sh"
+      - ".github/workflows/clifpy-currency.yml"
+  schedule:
+    # Weekly (Mondays 06:00 UTC) so a new clifpy release surfaces drift even
+    # when nobody is touching these files.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      clifpy_tag:
+        description: "clifpy tag to diff against (default: the pinned version)"
+        required: false
+        default: ""
+
+jobs:
+  check-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check vendored clifpy artifacts for drift
+        # Pass the dispatch input through an env var, never interpolated directly
+        # into the run script: `"$script" ${{ github.event.inputs.clifpy_tag }}`
+        # would splice attacker-controlled text into the shell (command injection).
+        # ${CLIFPY_TAG:+...} forwards the tag as a single quoted arg only when set,
+        # so the empty default cleanly falls through to the script's PINNED_VERSION.
+        env:
+          CLIFPY_TAG: ${{ github.event.inputs.clifpy_tag }}
+        run: |
+          script=skills/clif-icu/scripts/check_clifpy_currency.sh
+          chmod +x "$script"
+          "$script" ${CLIFPY_TAG:+"$CLIFPY_TAG"}

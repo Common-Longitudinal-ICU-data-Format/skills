@@ -184,7 +184,7 @@ print("=" * 60)
 clif.load_table(
     'vitals',
     columns=['hospitalization_id', 'recorded_dttm', 'vital_category', 'vital_value'],
-    categories=['weight_kg']
+    filters={'vital_category': ['weight_kg']}
 )
 print(f"Vitals (weight) loaded: {len(clif.vitals.df):,} rows")
 

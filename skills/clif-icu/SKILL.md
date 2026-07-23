@@ -8,8 +8,14 @@ description: Analyzes ICU clinical data using the Common Longitudinal ICU data F
 **CLIF** (Common Longitudinal ICU data Format) + **clifpy** Python library for ICU data analysis.
 
 ```bash
-pip install clifpy
+pip install --upgrade clifpy
 ```
+
+> **Data dictionary version:** This skill targets **CLIF v2.1.1** — the current stable public release (the latest non-prerelease CLIF tag, verified against [clif-icu.com](https://clif-icu.com/) and the [CLIF GitHub org](https://github.com/Common-Longitudinal-ICU-data-Format) on 2026-07-22). v2.1.1 is a data-quality patch over v2.1.0 (corrected lab `notes`/`lab_order_category` groupings and de-duplicated microbiology organism categories); the `*_category` value lists are unchanged, so clifpy 0.5.0's `2.1` schemas validate v2.1.1 data. **CLIF v3.0.0** exists only as a prerelease multimodal release (imaging, clinical notes, table renames like `crrt_therapy`→`renal_replacement_therapy` and `ecmo_mcs`→`mcs`) and is **not** the default — do not assume v3.0 table/field names unless a project explicitly declares that data dictionary version.
+>
+> **clifpy version:** Latest release is **0.5.0** (2026-06-11). Always `pip install --upgrade clifpy` rather than pinning an old version — the [validator/DQA API](reference/clifpy_utils/clifpy_functions.md) in particular has changed substantially across recent releases.
+>
+> **Vendored artifacts:** The [`schemas/`](schemas/) YAMLs and [`reference/clifpy_utils/`](reference/clifpy_utils/) `.py` files are vendored **verbatim** from clifpy `v0.5.0` (schemas from `clifpy/schemas/2.1/`). The [`mCIDE/`](mCIDE/) category CSVs are verified current against those schemas. Run [`scripts/check_clifpy_currency.sh`](scripts/check_clifpy_currency.sh) after any clifpy release to detect drift before trusting these files.
 
 ---
 
@@ -145,6 +151,16 @@ from clifpy.clif_orchestrator import ClifOrchestrator
 from clifpy.utils.sofa import REQUIRED_SOFA_CATEGORIES_BY_TABLE
 ```
 
+### check_clifpy_currency.sh
+Maintenance utility (not an analysis workflow). Downloads a pinned clifpy release and diffs the vendored `schemas/*.yaml` and `reference/clifpy_utils/*.py` against upstream, reporting drift. Run it after each clifpy release to catch silent staleness:
+
+```bash
+scripts/check_clifpy_currency.sh            # check against the pinned v0.5.0
+scripts/check_clifpy_currency.sh v0.6.0     # preview drift a version bump would introduce
+```
+
+CI runs this automatically (`.github/workflows/clifpy-currency.yml`) on PRs/pushes that touch the vendored files and on a weekly schedule, so drift fails a check rather than going unnoticed.
+
 ---
 
 ## Reference Files
@@ -192,10 +208,22 @@ from clifpy.tables import (
 
 ---
 
+## Looking Ahead: CLIF v3.0
+
+CLIF v3.0 is tagged as a prerelease on GitHub (multimodal focus). When a project explicitly opts into it, expect:
+- **14 new tables**, including `radiology`, `clinical_notes_facts`, `input`/`output`, `validated_diagnosis`, `ed_encounter`, and a split of `key_icu_orders` into `consult_orders`/`misc_icu_orders`
+- **Renames**: `crrt_therapy` → `renal_replacement_therapy` (adds intermittent HD support), `ecmo_mcs` → `mcs` (long-form schema)
+- **mCIDE breaking changes**: all category values move to lowercase snake_case; `lab_specimen_category` replaces source-prefixed lab names
+- 240+ new mCIDE values across medications, labs, assessments, respiratory support, and microbiology
+
+Do not apply any of the above to a v2.1.x project. Re-check [clif-icu.com/data-dictionary/change-log](https://clif-icu.com/data-dictionary/change-log) before assuming v3.0 has become the default.
+
+---
+
 ## Requirements
 
 ```bash
-pip install clifpy
+pip install --upgrade clifpy
 ```
 
 - Python 3.8+
