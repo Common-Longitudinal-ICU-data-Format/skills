@@ -58,14 +58,17 @@ def safe_count(n):
 
 # CLIF schema version this code targets. Ask the researcher which version their data
 # is in before writing analysis code — 2.1 (stable) and 3.0 (multimodal) differ in
-# category conventions and table set. We only DECLARE the version here (and echo it so
-# a mismatch is visible early); we do NOT auto-crosswalk. Migration 2.1 -> 3.0 is a
-# deliberate, audited step (see reference/phi-safe-development.md §6).
+# category conventions and table set. We only DECLARE the version here (echoing it so a
+# human can catch a wrong declaration — this performs NO automated version detection);
+# we do NOT auto-crosswalk. This example's category values follow the 2.1 convention and
+# are NOT converted for 3.0, so any value renamed in 3.0 would silently match zero rows;
+# the 3.0 path warns about this below. Migration 2.1 -> 3.0 is a deliberate, audited step
+# — see the "CLIF version: 2.1 vs 3.0" section of reference/phi-safe-development.md.
 CLIF_SCHEMA_VERSION = os.environ.get("CLIF_SCHEMA_VERSION", "2.1")
 if CLIF_SCHEMA_VERSION not in ("2.1", "3.0"):
     raise SystemExit(
         f"Unsupported CLIF_SCHEMA_VERSION={CLIF_SCHEMA_VERSION!r}; expected '2.1' or '3.0'. "
-        "See reference/phi-safe-development.md §6."
+        'See the "CLIF version: 2.1 vs 3.0" section of reference/phi-safe-development.md.'
     )
 
 
@@ -81,6 +84,14 @@ timezone = config["timezone"]
 # Do NOT print the data directory path or any row values — on real data those can
 # reveal PHI to a watching agent. Print only non-identifying settings.
 print(f"Targeting CLIF schema version: {CLIF_SCHEMA_VERSION}")
+if CLIF_SCHEMA_VERSION == "3.0":
+    print(
+        "  WARNING: this example's category values follow the 2.1 convention and are NOT\n"
+        "  converted or validated for 3.0. Any value renamed in 3.0 will silently match\n"
+        "  zero rows, quietly shrinking the cohort. Reconcile the filters against the 3.0\n"
+        "  data dictionary (or migrate your data first). See the 'CLIF version: 2.1 vs\n"
+        "  3.0' section of reference/phi-safe-development.md."
+    )
 print(f"File type: {filetype}")
 print(f"Timezone: {timezone}")
 

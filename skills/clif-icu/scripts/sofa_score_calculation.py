@@ -57,16 +57,20 @@ SMALL_CELL_THRESHOLD = int(os.environ.get("CLIF_SMALL_CELL_THRESHOLD", "11"))
 
 # CLIF schema version this code targets. Ask the researcher which version their data
 # is in before writing analysis code — 2.1 (stable) and 3.0 (multimodal) differ in
-# category conventions and table set. We only DECLARE the version here (and echo it so
-# a mismatch is visible early); we do NOT auto-crosswalk. The SOFA filter values below
-# (e.g. 'creatinine', 'norepinephrine') are already lowercase and stable across both
-# versions, and blindly crosswalking would double-convert native-3.0 data. Migration
-# is a deliberate, audited step — see reference/phi-safe-development.md §6.
+# category conventions and table set. We only DECLARE the version here (echoing it so a
+# human can catch a wrong declaration — this performs NO automated version detection);
+# we do NOT auto-crosswalk. The SOFA filter values below (e.g. 'creatinine',
+# 'norepinephrine') follow the 2.1 convention; we do NOT convert them for 3.0, because
+# blindly crosswalking would double-convert native-3.0 data and the 3.0 data dictionary
+# — not this file — is the authority on which values changed. Any value renamed in 3.0
+# would silently match zero rows here, so the 3.0 path warns loudly below. Migration is
+# a deliberate, audited step — see the "CLIF version: 2.1 vs 3.0" section of
+# reference/phi-safe-development.md.
 CLIF_SCHEMA_VERSION = os.environ.get("CLIF_SCHEMA_VERSION", "2.1")
 if CLIF_SCHEMA_VERSION not in ("2.1", "3.0"):
     raise SystemExit(
         f"Unsupported CLIF_SCHEMA_VERSION={CLIF_SCHEMA_VERSION!r}; expected '2.1' or '3.0'. "
-        "See reference/phi-safe-development.md §6."
+        'See the "CLIF version: 2.1 vs 3.0" section of reference/phi-safe-development.md.'
     )
 
 # =============================================================================
@@ -77,6 +81,16 @@ print("SOFA Score Calculation")
 print("=" * 60)
 
 print(f"\nTargeting CLIF schema version: {CLIF_SCHEMA_VERSION}")
+if CLIF_SCHEMA_VERSION == "3.0":
+    print(
+        "  WARNING: this script's SOFA category filters use 2.1-convention values and are\n"
+        "  NOT converted or validated for 3.0. Any category value renamed in 3.0 will\n"
+        "  silently match zero rows — and because SOFA fills missing components with 0,\n"
+        "  that becomes a silently understated sub-score, not an error. Reconcile the\n"
+        "  filters against the 3.0 data dictionary (or migrate your data to the version\n"
+        "  the filters target) before trusting these scores. See the 'CLIF version:\n"
+        "  2.1 vs 3.0' section of reference/phi-safe-development.md."
+    )
 print("\nInitializing ClifOrchestrator...")
 co = ClifOrchestrator(config_path=CONFIG_PATH)
 print("✓ ClifOrchestrator initialized")

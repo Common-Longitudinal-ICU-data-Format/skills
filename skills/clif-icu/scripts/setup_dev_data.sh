@@ -43,12 +43,15 @@ TIMEZONE="${CLIF_DEV_TZ:-US/Central}"
 SYNTHETIC_REF="${CLIF_SYNTHETIC_REF:-v0.7.0}"
 # CLIF schema version the caller intends to target. This sandbox always GENERATES
 # CLIF 2.1 (that is what synthetic_clif emits), so 3.0 work must migrate the 2.1 data
-# with clifpy's crosswalk as a deliberate, audited step — see §6 of the reference doc.
-# We surface the value here so a 2.1-vs-3.0 mismatch is visible up front.
+# with clifpy's crosswalk as a deliberate, audited step — see the "CLIF version:
+# 2.1 vs 3.0" section of the reference doc. We echo the caller's declared value so a
+# wrong 2.1-vs-3.0 declaration is easy to spot up front (no automated detection).
 CLIF_SCHEMA_VERSION="${CLIF_SCHEMA_VERSION:-2.1}"
 case "$CLIF_SCHEMA_VERSION" in
   2.1|3.0) ;;
-  *) echo "error: CLIF_SCHEMA_VERSION='$CLIF_SCHEMA_VERSION' unsupported (want 2.1 or 3.0)." >&2; exit 2 ;;
+  *) echo "error: CLIF_SCHEMA_VERSION='$CLIF_SCHEMA_VERSION' unsupported (want 2.1 or 3.0)." >&2
+     echo "See the \"CLIF version: 2.1 vs 3.0\" section of reference/phi-safe-development.md." >&2
+     exit 2 ;;
 esac
 
 command -v git >/dev/null 2>&1 || { echo "error: git not found" >&2; exit 2; }
@@ -79,7 +82,7 @@ if [ "$CLIF_SCHEMA_VERSION" != "2.1" ]; then
   echo
   echo "NOTE: CLIF_SCHEMA_VERSION=$CLIF_SCHEMA_VERSION requested, but this sandbox emits"
   echo "CLIF 2.1. Migrate to $CLIF_SCHEMA_VERSION with clifpy's crosswalk (audited step) —"
-  echo "see reference/phi-safe-development.md §6."
+  echo "see the \"CLIF version: 2.1 vs 3.0\" section of reference/phi-safe-development.md."
 fi
 echo
 

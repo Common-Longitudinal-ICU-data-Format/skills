@@ -302,7 +302,11 @@ data (and therefore your code) targets:
 **Ask the researcher which version their real data is in before writing analysis code** —
 the category/value conventions and the table set differ, so code written for one version
 will mis-filter or fail validation against the other. The example scripts read this
-variable and echo the active version so a mismatch is visible early.
+variable and echo the value you set so a wrong declaration is easy to spot; the echo
+reflects only your self-declaration and performs **no** automated version detection. On
+the `3.0` path the scripts additionally warn that their category filters use 2.1-convention
+values (uncorrected for 3.0) and may silently match zero rows — because they do not
+crosswalk, a stale filter fails quietly rather than loudly.
 
 ### Dev sandboxes are CLIF 2.1
 
@@ -353,8 +357,10 @@ errors = validator.validate_dataframe(converted, load_schema("respiratory_suppor
 - **Do not double-convert.** The crosswalk is 2.1 → 3.0. Data already in 3.0 (or loaded
   from a 3.0 source) must not be run through it again. This is why the scripts *declare*
   a version rather than blindly crosswalking on load.
-- **Confirm your installed clifpy exposes these** (recent builds ship the 3.0 schemas and
-  crosswalk): `python -c "from clifpy import crosswalk_table_2_1_to_3_0"`.
+- **Confirm your installed clifpy exposes the entry points used above** (recent builds ship
+  the 3.0 schemas and crosswalk; older ones do not — these imports fail loudly with
+  `ImportError` if absent, so verify before relying on them):
+  `python -c "from clifpy import crosswalk_table_2_1_to_3_0, crosswalk_file_2_1_to_3_0; from clifpy.utils.migrate_versions_2_1_to_3 import CrosswalkMigrationRunner; from clifpy.schemas import load_schema; from clifpy.utils import validator"`.
 
 ### 3.0 is multimodal — the PHI stakes go up
 
