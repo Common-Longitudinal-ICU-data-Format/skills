@@ -13,6 +13,11 @@ The SOFA score evaluates 6 organ systems:
 - Renal (creatinine)
 """
 
+# PHI-SAFE: When an agent can see this script's output, run it only against
+# non-PHI synthetic/demo data (see reference/phi-safe-development.md).
+# Never point config at real PHI while sharing output with an agent.
+
+import os
 import pandas as pd
 import warnings
 from pathlib import Path
@@ -25,8 +30,11 @@ warnings.filterwarnings('ignore')
 # =============================================================================
 # Configuration
 # =============================================================================
-CONFIG_PATH = '../config/config.json' # UPDATE TO CORRECT CONFIG TODO
-TIME_WINDOW_HOURS = 24  # Time window for SOFA calculation (e.g., first 24h) TODO PROJECT SPECIFIC 
+# PHI-safe default: the non-PHI demo config written by scripts/setup_dev_data.sh.
+# Override with CLIF_CONFIG_PATH for your own real run (done by you, in your secure
+# environment, with the agent absent). ClifOrchestrator parses this config natively.
+CONFIG_PATH = os.environ.get("CLIF_CONFIG_PATH", "./clif_demo_config.json")
+TIME_WINDOW_HOURS = 24  # Time window for SOFA calculation (e.g., first 24h) TODO PROJECT SPECIFIC
 
 # =============================================================================
 # Initialize ClifOrchestrator
@@ -236,7 +244,13 @@ print(f"  Range: {sofa_scores['sofa_total'].min():.0f} - {sofa_scores['sofa_tota
 print("\n" + "=" * 60)
 print("SOFA Score Results")
 print("=" * 60)
-print(sofa_scores.head(10))
+# PHI-safe: do NOT print per-patient rows (e.g. sofa_scores.head(10)) — on real
+# data those are PHI a watching agent would see. Print shape + columns + aggregate
+# score distribution only (no per-patient identifiers or timestamps).
+print(f"Shape: {sofa_scores.shape}")
+print(f"Columns: {list(sofa_scores.columns)}")
+print("\nsofa_total distribution:")
+print(sofa_scores['sofa_total'].describe())
 
 # The sofa_scores DataFrame contains:
 # - hospitalization_id

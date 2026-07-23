@@ -8,6 +8,11 @@ Based on identifying CRRT patients from CLIF 2.1 standardized tables.
 Author: Kaveri Chhikara
 """
 
+# PHI-SAFE: When an agent can see this script's output, run it only against
+# non-PHI synthetic/demo data (see reference/phi-safe-development.md).
+# Never point config at real PHI while sharing output with an agent.
+
+import os
 import pandas as pd
 import numpy as np
 import json
@@ -20,20 +25,29 @@ from clifpy.utils.stitching_encounters import stitch_encounters
 # SETUP
 # =============================================================================
 
-# Load configuration
-config_path = "../config/config.json"
+# PHI-safe default: point at the non-PHI demo config written by
+# scripts/setup_dev_data.sh. Override with CLIF_CONFIG_PATH for your own real run
+# (which you do yourself, in your secure environment, with no agent watching).
+config_path = os.environ.get("CLIF_CONFIG_PATH", "./clif_demo_config.json")
 with open(config_path, 'r') as f:
     config = json.load(f)
 
-print(f"Data directory: {config['tables_path']}")
-print(f"File type: {config['file_type']}")
-print(f"Timezone: {config['timezone']}")
+# Accept both key variants: create_example_config writes data_directory/filetype;
+# some hand-written YAML-style configs use tables_path/file_type.
+data_directory = config.get("data_directory") or config["tables_path"]
+filetype = config.get("filetype") or config["file_type"]
+timezone = config["timezone"]
+
+# Do NOT print the data directory path or any row values — on real data those can
+# reveal PHI to a watching agent. Print only non-identifying settings.
+print(f"File type: {filetype}")
+print(f"Timezone: {timezone}")
 
 # Initialize ClifOrchestrator
 clif = ClifOrchestrator(
-    data_directory=config['tables_path'],
-    filetype=config['file_type'],
-    timezone=config['timezone']
+    data_directory=data_directory,
+    filetype=filetype,
+    timezone=timezone
 )
 
 # =============================================================================

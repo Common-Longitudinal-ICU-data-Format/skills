@@ -1,0 +1,8 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Local non-PHI dev sandbox produced by scripts/setup_dev_data.sh (never commit data)
+/dev_data/
+/synthetic_clif/
+clif_demo_config.json
