@@ -62,7 +62,7 @@ labs = Labs.from_file(
 | **Table Schema** | [schemas/patient_assessments_schema.yaml](../schemas/patient_assessments_schema.yaml) |
 | **Category Values** | [mCIDE/patient_assessments/](../mCIDE/patient_assessments/clif_patient_assessment_categories.csv) |
 | **Category Column** | `assessment_category` |
-| **Count** | 71 categories |
+| **Count** | 70 categories |
 
 **By Group:**
 - **Neurological:** gcs_total, gcs_eye, gcs_motor, gcs_verbal, AVPU, APGAR
@@ -91,7 +91,7 @@ assessments = PatientAssessments.from_file(
 | **Table Schema** | [schemas/medication_admin_continuous_schema.yaml](../schemas/medication_admin_continuous_schema.yaml) |
 | **Category Values** | [mCIDE/medication_admin_continuous/](../mCIDE/medication_admin_continuous/clif_medication_admin_continuous_med_categories.csv) |
 | **Category Column** | `med_category` |
-| **Count** | 78 medications |
+| **Count** | 77 medications |
 | **Action Column** | `action_category`: start, stop, going, dose_change |
 
 **By Group:**
@@ -168,7 +168,7 @@ resp = RespiratorySupport.from_file(
 | **Category Values** | [mCIDE/microbiology_culture/](../mCIDE/microbiology_culture/) |
 | **Organism Column** | `organism_category` |
 | **Fluid Column** | `fluid_category` |
-| **Count** | 545+ organisms |
+| **Count** | 541 organisms |
 
 **Common Organisms:** staphylococcus_aureus, escherichia_coli, klebsiella_pneumoniae, pseudomonas_aeruginosa, enterococcus_faecalis, candida_albicans, no_growth
 
