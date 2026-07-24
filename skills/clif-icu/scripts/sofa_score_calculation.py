@@ -13,6 +13,14 @@ The SOFA score evaluates 6 organ systems:
 - Renal (creatinine)
 """
 
+# PHI-SAFE: When an agent can see this process, run it only against non-PHI
+# synthetic/demo data (see reference/phi-safe-development.md). A real-data run
+# (CLIF_CONFIG_PATH set) must happen in your own secure environment with NO agent
+# observing — an agent session captures stdout AND uncaught tracebacks, so print
+# sanitization alone is not enough. Aggregates below are small-cell suppressed as
+# defense in depth, not a license to run this where an agent can watch.
+
+import os
 import pandas as pd
 import warnings
 from pathlib import Path
@@ -25,8 +33,51 @@ warnings.filterwarnings('ignore')
 # =============================================================================
 # Configuration
 # =============================================================================
-CONFIG_PATH = '../config/config.json' # UPDATE TO CORRECT CONFIG TODO
-TIME_WINDOW_HOURS = 24  # Time window for SOFA calculation (e.g., first 24h) TODO PROJECT SPECIFIC 
+# PHI-safe default: the non-PHI demo config written by scripts/setup_dev_data.sh.
+# Override with CLIF_CONFIG_PATH for your own real run (done by you, in your secure
+# environment, with the agent absent). ClifOrchestrator parses this config natively.
+DEMO_CONFIG_PATH = "./clif_demo_config.json"
+CONFIG_PATH = os.environ.get("CLIF_CONFIG_PATH", DEMO_CONFIG_PATH)
+TIME_WINDOW_HOURS = 24  # Time window for SOFA calculation (e.g., first 24h) TODO PROJECT SPECIFIC
+
+# Guard against an agent session silently inheriting a researcher's real-data config
+# from the environment. A non-demo config requires explicit confirmation that no agent
+# is observing this process (stdout AND tracebacks are captured by agent sessions).
+if CONFIG_PATH != DEMO_CONFIG_PATH and os.environ.get("CLIF_ALLOW_REAL_DATA") != "1":
+    raise SystemExit(
+        f"Refusing to run: CLIF_CONFIG_PATH points at a non-demo config "
+        f"({CONFIG_PATH!r}). If this is a real-data run, you must be in your own "
+        "secure environment with NO agent observing this process. Re-run with "
+        "CLIF_ALLOW_REAL_DATA=1 to confirm. See reference/phi-safe-development.md."
+    )
+
+# Small-cell suppression: never print a cohort size, record count, or distribution below
+# the site threshold, since small counts can re-identify patients (reference/phi-safe-development.md).
+SMALL_CELL_THRESHOLD = int(os.environ.get("CLIF_SMALL_CELL_THRESHOLD", "11"))
+
+
+def safe_count(n):
+    """Display a count, suppressing small cells below SMALL_CELL_THRESHOLD."""
+    n = int(n)
+    return f"{n:,}" if n >= SMALL_CELL_THRESHOLD else f"<suppressed (n<{SMALL_CELL_THRESHOLD})>"
+
+# CLIF schema version this code targets. Ask the researcher which version their data
+# is in before writing analysis code — 2.1 (stable) and 3.0 (multimodal) differ in
+# category conventions and table set. We only DECLARE the version here (echoing it so a
+# human can catch a wrong declaration — this performs NO automated version detection);
+# we do NOT auto-crosswalk. The SOFA filter values below (e.g. 'creatinine',
+# 'norepinephrine') follow the 2.1 convention; we do NOT convert them for 3.0, because
+# blindly crosswalking would double-convert native-3.0 data and the 3.0 data dictionary
+# — not this file — is the authority on which values changed. Any value renamed in 3.0
+# would silently match zero rows here, so the 3.0 path warns loudly below. Migration is
+# a deliberate, audited step — see the "CLIF version: 2.1 vs 3.0" section of
+# reference/phi-safe-development.md.
+CLIF_SCHEMA_VERSION = os.environ.get("CLIF_SCHEMA_VERSION", "2.1")
+if CLIF_SCHEMA_VERSION not in ("2.1", "3.0"):
+    raise SystemExit(
+        f"Unsupported CLIF_SCHEMA_VERSION={CLIF_SCHEMA_VERSION!r}; expected '2.1' or '3.0'. "
+        'See the "CLIF version: 2.1 vs 3.0" section of reference/phi-safe-development.md.'
+    )
 
 # =============================================================================
 # Initialize ClifOrchestrator
@@ -35,6 +86,17 @@ print("=" * 60)
 print("SOFA Score Calculation")
 print("=" * 60)
 
+print(f"\nTargeting CLIF schema version: {CLIF_SCHEMA_VERSION}")
+if CLIF_SCHEMA_VERSION == "3.0":
+    print(
+        "  WARNING: this script's SOFA category filters use 2.1-convention values and are\n"
+        "  NOT converted or validated for 3.0. Any category value renamed in 3.0 will\n"
+        "  silently match zero rows — and because SOFA fills missing components with 0,\n"
+        "  that becomes a silently understated sub-score, not an error. Reconcile the\n"
+        "  filters against the 3.0 data dictionary (or migrate your data to the version\n"
+        "  the filters target) before trusting these scores. See the 'CLIF version:\n"
+        "  2.1 vs 3.0' section of reference/phi-safe-development.md."
+    )
 print("\nInitializing ClifOrchestrator...")
 co = ClifOrchestrator(config_path=CONFIG_PATH)
 print("✓ ClifOrchestrator initialized")
@@ -60,7 +122,7 @@ cohort_df = pd.DataFrame({
 # cohort_df['start_time'] = pd.to_datetime(cohort_df['your_start_column'])
 # cohort_df['end_time'] = cohort_df['start_time'] + pd.Timedelta(hours=TIME_WINDOW_HOURS)
 
-print(f"✓ Cohort prepared: {len(cohort_df):,} hospitalizations")
+print(f"✓ Cohort prepared: {safe_count(len(cohort_df))} hospitalizations")
 
 # Get list of hospitalization IDs for filtering
 hosp_ids = cohort_df['hospitalization_id'].astype(str).unique().tolist()
@@ -79,7 +141,7 @@ co.load_table(
     },
     columns=['hospitalization_id', 'lab_result_dttm', 'lab_category', 'lab_value_numeric']
 )
-print(f"  ✓ Labs loaded: {len(co.labs.df):,} records")
+print(f"  ✓ Labs loaded: {safe_count(len(co.labs.df))} records")
 
 # Load vitals (MAP, SpO2, weight for dose calculations)
 co.load_table(
@@ -90,7 +152,7 @@ co.load_table(
     },
     columns=['hospitalization_id', 'recorded_dttm', 'vital_category', 'vital_value']
 )
-print(f"  ✓ Vitals loaded: {len(co.vitals.df):,} records")
+print(f"  ✓ Vitals loaded: {safe_count(len(co.vitals.df))} records")
 
 # Load patient assessments (GCS for neurological SOFA)
 co.load_table(
@@ -101,7 +163,7 @@ co.load_table(
     },
     columns=['hospitalization_id', 'recorded_dttm', 'assessment_category', 'numerical_value']
 )
-print(f"  ✓ Patient assessments loaded: {len(co.patient_assessments.df):,} records")
+print(f"  ✓ Patient assessments loaded: {safe_count(len(co.patient_assessments.df))} records")
 
 # Load continuous medications (vasopressors for cardiovascular SOFA)
 co.load_table(
@@ -111,7 +173,7 @@ co.load_table(
         'med_category': ['norepinephrine', 'epinephrine', 'dopamine', 'dobutamine']
     }
 )
-print(f"  ✓ Medications loaded: {len(co.medication_admin_continuous.df):,} records")
+print(f"  ✓ Medications loaded: {safe_count(len(co.medication_admin_continuous.df))} records")
 
 # Load respiratory support (for FiO2 in respiratory SOFA)
 co.load_table(
@@ -121,7 +183,7 @@ co.load_table(
     },
     columns=['hospitalization_id', 'recorded_dttm', 'device_category', 'fio2_set']
 )
-print(f"  ✓ Respiratory support loaded: {len(co.respiratory_support.df):,} records")
+print(f"  ✓ Respiratory support loaded: {safe_count(len(co.respiratory_support.df))} records")
 
 print("✓ All SOFA tables loaded")
 
@@ -139,7 +201,7 @@ med_df = med_df[~med_df['med_dose_unit'].astype(str).str.lower().isin(['nan', 'n
 
 # Update the table
 co.medication_admin_continuous.df = med_df
-print(f"✓ Removed null doses: {initial_med_count:,} → {len(med_df):,} records")
+print(f"✓ Removed null doses: {safe_count(initial_med_count)} → {safe_count(len(med_df))} records")
 
 # =============================================================================
 # Convert Medication Units for SOFA
@@ -174,9 +236,10 @@ med_df_success = med_df_converted[med_df_converted['_convert_status'] == 'succes
 co.medication_admin_continuous.df_converted = med_df_success
 
 conversion_removed_count = converted_initial_count - len(med_df_success)
-print(f"✓ Filtered: {converted_initial_count:,} → {len(med_df_success):,} records")
+print(f"✓ Filtered: {safe_count(converted_initial_count)} → {safe_count(len(med_df_success))} records")
 if converted_initial_count > 0:
-    print(f"  Removed {conversion_removed_count:,} failed conversions ({conversion_removed_count/converted_initial_count*100:.1f}%)")
+    # Percentage is non-identifying (a ratio, not a count); the raw removed count is suppressed.
+    print(f"  Removed {safe_count(conversion_removed_count)} failed conversions ({conversion_removed_count/converted_initial_count*100:.1f}%)")
 
 # =============================================================================
 # Create Wide Dataset for SOFA
@@ -225,10 +288,14 @@ sofa_scores = co.compute_sofa_scores(
     create_new_wide_df=False
 )
 
-print(f"\n✓ SOFA scores computed: {sofa_scores.shape}")
-print(f"  Mean SOFA: {sofa_scores['sofa_total'].mean():.2f}")
-print(f"  Median SOFA: {sofa_scores['sofa_total'].median():.2f}")
-print(f"  Range: {sofa_scores['sofa_total'].min():.0f} - {sofa_scores['sofa_total'].max():.0f}")
+_n_scored = int(sofa_scores['sofa_total'].notna().sum())
+print(f"\n✓ SOFA scores computed: {len(sofa_scores.columns)} columns")
+if _n_scored >= SMALL_CELL_THRESHOLD:
+    print(f"  Mean SOFA: {sofa_scores['sofa_total'].mean():.2f}")
+    print(f"  Median SOFA: {sofa_scores['sofa_total'].median():.2f}")
+    print(f"  Range: {sofa_scores['sofa_total'].min():.0f} - {sofa_scores['sofa_total'].max():.0f}")
+else:
+    print(f"  Aggregate SOFA stats suppressed (cohort n<{SMALL_CELL_THRESHOLD})")
 
 # =============================================================================
 # Results
@@ -236,7 +303,16 @@ print(f"  Range: {sofa_scores['sofa_total'].min():.0f} - {sofa_scores['sofa_tota
 print("\n" + "=" * 60)
 print("SOFA Score Results")
 print("=" * 60)
-print(sofa_scores.head(10))
+# PHI-safe: do NOT print per-patient rows (e.g. sofa_scores.head(10)) — on real
+# data those are PHI a watching agent would see. Print columns + an aggregate score
+# distribution only, and suppress the distribution (which includes the cohort count)
+# when the cohort is below the small-cell threshold.
+print(f"Columns: {list(sofa_scores.columns)}")
+print("\nsofa_total distribution:")
+if _n_scored >= SMALL_CELL_THRESHOLD:
+    print(sofa_scores['sofa_total'].describe())
+else:
+    print(f"  Distribution suppressed (cohort n<{SMALL_CELL_THRESHOLD})")
 
 # The sofa_scores DataFrame contains:
 # - hospitalization_id

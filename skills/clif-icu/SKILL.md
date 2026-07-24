@@ -13,6 +13,53 @@ pip install clifpy
 
 ---
 
+## Critical: PHI-Safe Agentic Development
+
+**When any AI agent helps write or debug CLIF code — clifpy, R, ETL, ad-hoc scripts, anything — the agent must never receive PHI/RHI (real patient data).** This is a universal rule for CLIF agentic coding, not just clif-icu analysis. Develop against non-PHI data; the researcher runs on real data themselves, in their own secure environment.
+
+1. **Develop against non-PHI data.** The agent writes/debugs code against synthetic or demo CLIF data only. If your org has **Claude Enterprise**, use it here too; but **any channel — a consumer Max/Pro plan or the first-party API — is fine here, because the agent never sees PHI.** A covered channel becomes required only at step 3.
+2. **The researcher runs the code on real PHI themselves**, in their own secure/HIPAA environment. The strongest posture keeps the agent absent for this step.
+3. **If Claude must be in the loop on real data, toggle to a BAA-covered channel first.** Which channels are covered — and their per-channel conditions (ZDR, HIPAA-ready org, cloud-provider BAA) — is perishable; the current matrix, with its verify-before-relying timestamp, lives in [reference/phi-safe-development.md](reference/phi-safe-development.md). **Verify the active credential is the covered endpoint, not a Max/Pro plan** (e.g. `/status` + env vars), confirm current org coverage there, and **sanitize outputs regardless — a covered channel is not permission to paste raw PHI.**
+4. **This skill self-enforces the above** within clif-icu work — pointing an agent at real data on an uncovered plan is a defect.
+
+**Non-PHI dev data:** [`synthetic_clif`](https://github.com/Common-Longitudinal-ICU-data-Format/synthetic_clif) (MIT, no PHI, generates CLIF 2.1.0, larger N) or [MIMIC-IV-Ext-CLIF](https://physionet.org/content/mimic-iv-ext-clif/1.1.0/) (PhysioNet, credentialed, real-derived, already CLIF-formatted). See [`scripts/setup_dev_data.sh`](scripts/setup_dev_data.sh) for a one-command sandbox.
+
+**Never paste PHI into the conversation** — no raw tracebacks, `.head()`/`.sample()`/`value_counts()` previews, MRNs, `patient_id`/`hospitalization_id` values, dates/timestamps, note or organism free text, or small-cell counts from real data. This holds even on a BAA-covered channel.
+
+Full setup, sanitization checklist, and HIPAA-channel guidance: [reference/phi-safe-development.md](reference/phi-safe-development.md).
+
+---
+
+## CLIF version: 2.1 (stable) vs 3.0 (multimodal)
+
+**Default to CLIF 2.1.0** — the current stable data dictionary, and what clifpy and
+`synthetic_clif` target. **CLIF 3.0** is a *breaking, major* release (July 2026) that
+goes **multimodal**: it adds imaging and clinical-notes tables (e.g. `clinical_notes_facts`,
+`airway`) and renames many `*_category`/`*_group`/`*_type` values to a lowercase/`snake_case`
+convention (`IMV` → `imv`, `High Flow NC` → `hfnc`). Several 3.0 tables are still **Alpha**
+("changes remain likely") — treat the [3.0 data dictionary](https://clif-icu.com/data-dictionary/data-dictionary-3.0.0)
+as the authority, not this file. *(Verified 2026-07-23; re-check before relying.)*
+
+**Toggle:** set the `CLIF_SCHEMA_VERSION` environment variable to `2.1` (default) or
+`3.0`. **Ask the researcher which CLIF version their data is in before writing code** —
+the value conventions and table set differ.
+
+**clifpy ships both schemas.** It does not switch version on `ClifOrchestrator`; instead
+you migrate or validate against an explicit version. Migrate 2.1 → 3.0 with
+`crosswalk_table_2_1_to_3_0(df, table)` (in memory), `crosswalk_file_2_1_to_3_0(...)`
+(out-of-core), or `CrosswalkMigrationRunner(config_path=...).run(dry_run=True)` (whole
+site); validate against a version with `load_schema(table, "3.0")`. Some values are
+**ambiguous** and need a human decision (e.g. `albumin` → `albumin_5`/`albumin_25`) —
+never let an agent auto-resolve those. Full details and code:
+[reference/phi-safe-development.md](reference/phi-safe-development.md).
+
+**PHI note:** 3.0's clinical notes and imaging are the *most PHI-dense* data in CLIF. By
+design CLIF holds only note **metadata** (the text is provisioned just-in-time, not stored
+in CLIF) — mirror that discipline: the PHI-safe rules above apply *doubly* to notes and
+imaging, which an agent must never receive.
+
+---
+
 ## When to Use This Skill
 
 Activate this skill when:
@@ -64,6 +111,8 @@ All other tables (patient, hospitalization, adt, code_status, position, crrt_the
 
 ## Quick Start
 
+> **PHI-safe:** for agent-assisted work, `data_directory` must point at **non-PHI** synthetic/demo data — see [reference/phi-safe-development.md](reference/phi-safe-development.md).
+
 ### Load Individual Tables (Preferred)
 ```python
 from clifpy.tables import Vitals, Labs, PatientAssessments
@@ -100,6 +149,7 @@ labs_df = labs.df
 ```python
 from clifpy import ClifOrchestrator
 
+# PHI-safe: with an agent, point data_directory at non-PHI synthetic/demo data.
 co = ClifOrchestrator(
     data_directory='/path/to/data',
     filetype='parquet',
@@ -145,6 +195,13 @@ from clifpy.clif_orchestrator import ClifOrchestrator
 from clifpy.utils.sofa import REQUIRED_SOFA_CATEGORIES_BY_TABLE
 ```
 
+### setup_dev_data.sh
+Dev-environment bootstrapper (not an analysis workflow). Clones [`synthetic_clif`](https://github.com/Common-Longitudinal-ICU-data-Format/synthetic_clif), installs it, generates a small **non-PHI** CLIF cohort into `./dev_data`, and writes a `clif_demo_config.json` — a one-command sandbox that is safe to share with an agent. Use this so the agent never needs to touch real PHI (see [reference/phi-safe-development.md](reference/phi-safe-development.md)).
+
+```bash
+scripts/setup_dev_data.sh              # synthetic_clif -> ./dev_data + clif_demo_config.json
+```
+
 ---
 
 ## Reference Files
@@ -153,6 +210,7 @@ For detailed information, read the appropriate reference file:
 
 | Topic | File | When to Read |
 |-------|------|--------------|
+| **PHI-safe agentic development** | [reference/phi-safe-development.md](reference/phi-safe-development.md) | Before pointing an agent at any data; setting up a non-PHI dev environment; sanitizing real-data errors |
 | **Table schemas & categories** | [reference/tables.md](reference/tables.md) | Looking up table structure, column definitions, category values |
 | **Clinical scores** | [reference/clinical-scores.md](reference/clinical-scores.md) | Computing SOFA, CCI, Elixhauser scores |
 | **Data processing** | [reference/data-processing.md](reference/data-processing.md) | Wide datasets, hourly aggregation, encounter stitching, outlier handling |
@@ -200,3 +258,4 @@ pip install clifpy
 
 - Python 3.8+
 - Dependencies: pandas, pyarrow (for parquet support)
+- **For agent-assisted development:** set up a non-PHI dataset first (`scripts/setup_dev_data.sh`; see [reference/phi-safe-development.md](reference/phi-safe-development.md)). Do not run against real PHI while an agent can see the output.

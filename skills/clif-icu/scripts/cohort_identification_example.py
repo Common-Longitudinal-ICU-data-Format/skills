@@ -8,6 +8,14 @@ Based on identifying CRRT patients from CLIF 2.1 standardized tables.
 Author: Kaveri Chhikara
 """
 
+# PHI-SAFE: When an agent can see this process, run it only against non-PHI
+# synthetic/demo data (see reference/phi-safe-development.md). A real-data run
+# (CLIF_CONFIG_PATH set) must happen in your own secure environment with NO agent
+# observing — an agent session captures stdout AND uncaught tracebacks, so print
+# sanitization alone is not enough. Counts below are small-cell suppressed as
+# defense in depth, not a license to run this where an agent can watch.
+
+import os
 import pandas as pd
 import numpy as np
 import json
@@ -20,20 +28,78 @@ from clifpy.utils.stitching_encounters import stitch_encounters
 # SETUP
 # =============================================================================
 
-# Load configuration
-config_path = "../config/config.json"
+# PHI-safe default: point at the non-PHI demo config written by
+# scripts/setup_dev_data.sh. Override with CLIF_CONFIG_PATH for your own real run
+# (which you do yourself, in your secure environment, with no agent watching).
+DEMO_CONFIG_PATH = "./clif_demo_config.json"
+config_path = os.environ.get("CLIF_CONFIG_PATH", DEMO_CONFIG_PATH)
+
+# Guard against an agent session silently inheriting a researcher's real-data
+# config from the environment. A non-demo config requires explicit confirmation
+# that no agent is observing this process (stdout AND tracebacks are captured).
+if config_path != DEMO_CONFIG_PATH and os.environ.get("CLIF_ALLOW_REAL_DATA") != "1":
+    raise SystemExit(
+        f"Refusing to run: CLIF_CONFIG_PATH points at a non-demo config "
+        f"({config_path!r}). If this is a real-data run, you must be in your own "
+        "secure environment with NO agent observing this process. Re-run with "
+        "CLIF_ALLOW_REAL_DATA=1 to confirm. See reference/phi-safe-development.md."
+    )
+
+# Small-cell suppression: never print a count below the site threshold, since small
+# cohort/subgroup sizes can re-identify patients (see reference/phi-safe-development.md).
+SMALL_CELL_THRESHOLD = int(os.environ.get("CLIF_SMALL_CELL_THRESHOLD", "11"))
+
+
+def safe_count(n):
+    """Display a count, suppressing small cells below SMALL_CELL_THRESHOLD."""
+    n = int(n)
+    return f"{n:,}" if n >= SMALL_CELL_THRESHOLD else f"<suppressed (n<{SMALL_CELL_THRESHOLD})>"
+
+
+# CLIF schema version this code targets. Ask the researcher which version their data
+# is in before writing analysis code — 2.1 (stable) and 3.0 (multimodal) differ in
+# category conventions and table set. We only DECLARE the version here (echoing it so a
+# human can catch a wrong declaration — this performs NO automated version detection);
+# we do NOT auto-crosswalk. This example's category values follow the 2.1 convention and
+# are NOT converted for 3.0, so any value renamed in 3.0 would silently match zero rows;
+# the 3.0 path warns about this below. Migration 2.1 -> 3.0 is a deliberate, audited step
+# — see the "CLIF version: 2.1 vs 3.0" section of reference/phi-safe-development.md.
+CLIF_SCHEMA_VERSION = os.environ.get("CLIF_SCHEMA_VERSION", "2.1")
+if CLIF_SCHEMA_VERSION not in ("2.1", "3.0"):
+    raise SystemExit(
+        f"Unsupported CLIF_SCHEMA_VERSION={CLIF_SCHEMA_VERSION!r}; expected '2.1' or '3.0'. "
+        'See the "CLIF version: 2.1 vs 3.0" section of reference/phi-safe-development.md.'
+    )
+
+
 with open(config_path, 'r') as f:
     config = json.load(f)
 
-print(f"Data directory: {config['tables_path']}")
-print(f"File type: {config['file_type']}")
-print(f"Timezone: {config['timezone']}")
+# Accept both key variants: create_example_config writes data_directory/filetype;
+# some hand-written YAML-style configs use tables_path/file_type.
+data_directory = config.get("data_directory") or config["tables_path"]
+filetype = config.get("filetype") or config["file_type"]
+timezone = config["timezone"]
+
+# Do NOT print the data directory path or any row values — on real data those can
+# reveal PHI to a watching agent. Print only non-identifying settings.
+print(f"Targeting CLIF schema version: {CLIF_SCHEMA_VERSION}")
+if CLIF_SCHEMA_VERSION == "3.0":
+    print(
+        "  WARNING: this example's category values follow the 2.1 convention and are NOT\n"
+        "  converted or validated for 3.0. Any value renamed in 3.0 will silently match\n"
+        "  zero rows, quietly shrinking the cohort. Reconcile the filters against the 3.0\n"
+        "  data dictionary (or migrate your data first). See the 'CLIF version: 2.1 vs\n"
+        "  3.0' section of reference/phi-safe-development.md."
+    )
+print(f"File type: {filetype}")
+print(f"Timezone: {timezone}")
 
 # Initialize ClifOrchestrator
 clif = ClifOrchestrator(
-    data_directory=config['tables_path'],
-    filetype=config['file_type'],
-    timezone=config['timezone']
+    data_directory=data_directory,
+    filetype=filetype,
+    timezone=timezone
 )
 
 # =============================================================================
@@ -48,9 +114,9 @@ clif.load_table('patient')
 clif.load_table('hospitalization')
 clif.load_table('adt')
 
-print(f"Patient: {len(clif.patient.df):,} rows")
-print(f"Hospitalization: {len(clif.hospitalization.df):,} rows")
-print(f"ADT: {len(clif.adt.df):,} rows")
+print(f"Patient: {safe_count(len(clif.patient.df))} rows")
+print(f"Hospitalization: {safe_count(len(clif.hospitalization.df))} rows")
+print(f"ADT: {safe_count(len(clif.adt.df))} rows")
 
 # =============================================================================
 # STEP 1: FILTER BY AGE AND DATE
@@ -73,7 +139,7 @@ all_encounters = pd.merge(
     how='inner'
 )
 
-print(f"Total hospitalizations: {all_encounters['hospitalization_id'].nunique():,}")
+print(f"Total hospitalizations: {safe_count(all_encounters['hospitalization_id'].nunique())}")
 
 # Filter for adults
 adult_encounters = all_encounters[
@@ -88,7 +154,7 @@ adult_encounters = adult_encounters[
 ]
 
 adult_hosp_ids = set(adult_encounters['hospitalization_id'].unique())
-print(f"Adult hospitalizations (2018-2024): {len(adult_hosp_ids):,}")
+print(f"Adult hospitalizations (2018-2024): {safe_count(len(adult_hosp_ids))}")
 
 # =============================================================================
 # STEP 2: STITCH ENCOUNTERS
@@ -114,8 +180,8 @@ clif.hospitalization.df = hosp_stitched
 clif.adt.df = adt_stitched
 clif.encounter_mapping = encounter_mapping
 
-print(f"Encounter blocks created: {encounter_mapping['encounter_block'].nunique():,}")
-print(f"Original hospitalizations: {len(encounter_mapping):,}")
+print(f"Encounter blocks created: {safe_count(encounter_mapping['encounter_block'].nunique())}")
+print(f"Original hospitalizations: {safe_count(len(encounter_mapping))}")
 
 # =============================================================================
 # STEP 3: IDENTIFY CRRT ENCOUNTERS
@@ -126,7 +192,7 @@ print("Step 3: Identify CRRT Encounters")
 print("=" * 60)
 
 clif.load_table('crrt_therapy')
-print(f"CRRT therapy loaded: {len(clif.crrt_therapy.df):,} rows")
+print(f"CRRT therapy loaded: {safe_count(len(clif.crrt_therapy.df))} rows")
 
 # Merge with encounter mapping
 clif.crrt_therapy.df = clif.crrt_therapy.df.merge(
@@ -136,7 +202,7 @@ clif.crrt_therapy.df = clif.crrt_therapy.df.merge(
 )
 
 crrt_encounter_blocks = set(clif.crrt_therapy.df['encounter_block'].dropna().unique())
-print(f"Encounter blocks with CRRT: {len(crrt_encounter_blocks):,}")
+print(f"Encounter blocks with CRRT: {safe_count(len(crrt_encounter_blocks))}")
 
 # =============================================================================
 # STEP 4: EXCLUDE ESRD
@@ -147,7 +213,7 @@ print("Step 4: Exclude ESRD (present on admission)")
 print("=" * 60)
 
 clif.load_table('hospital_diagnosis')
-print(f"Diagnoses loaded: {len(clif.hospital_diagnosis.df):,} rows")
+print(f"Diagnoses loaded: {safe_count(len(clif.hospital_diagnosis.df))} rows")
 
 # Merge with encounter mapping
 clif.hospital_diagnosis.df = clif.hospital_diagnosis.df.merge(
@@ -170,8 +236,8 @@ esrd_mask = diagnosis_df['diagnosis_code'].apply(
 esrd_encounters = set(diagnosis_df.loc[esrd_mask, 'encounter_block'].unique())
 
 final_encounter_blocks = crrt_encounter_blocks - esrd_encounters
-print(f"ESRD encounters excluded: {len(esrd_encounters):,}")
-print(f"Remaining encounters: {len(final_encounter_blocks):,}")
+print(f"ESRD encounters excluded: {safe_count(len(esrd_encounters))}")
+print(f"Remaining encounters: {safe_count(len(final_encounter_blocks))}")
 
 # =============================================================================
 # STEP 5: CHECK WEIGHT AVAILABILITY
@@ -186,7 +252,7 @@ clif.load_table(
     columns=['hospitalization_id', 'recorded_dttm', 'vital_category', 'vital_value'],
     categories=['weight_kg']
 )
-print(f"Vitals (weight) loaded: {len(clif.vitals.df):,} rows")
+print(f"Vitals (weight) loaded: {safe_count(len(clif.vitals.df))} rows")
 
 # Merge with encounter mapping
 clif.vitals.df = clif.vitals.df.merge(
@@ -200,8 +266,8 @@ weight_df = clif.vitals.df[clif.vitals.df['encounter_block'].isin(final_encounte
 encounters_with_weight = set(weight_df['encounter_block'].unique())
 
 final_encounter_blocks = final_encounter_blocks & encounters_with_weight
-print(f"Encounters with weight data: {len(encounters_with_weight):,}")
-print(f"Final cohort size: {len(final_encounter_blocks):,}")
+print(f"Encounters with weight data: {safe_count(len(encounters_with_weight))}")
+print(f"Final cohort size: {safe_count(len(final_encounter_blocks))}")
 
 # =============================================================================
 # STEP 6: BUILD FINAL COHORT
@@ -227,9 +293,9 @@ cohort_df = cohort_df.merge(hosp_df, on='hospitalization_id', how='left')
 cohort_df = cohort_df.merge(patient_df, on='patient_id', how='left')
 
 print(f"\nFinal Cohort:")
-print(f"   Encounter blocks: {cohort_df['encounter_block'].nunique():,}")
-print(f"   Hospitalizations: {cohort_df['hospitalization_id'].nunique():,}")
-print(f"   Patients: {cohort_df['patient_id'].nunique():,}")
+print(f"   Encounter blocks: {safe_count(cohort_df['encounter_block'].nunique())}")
+print(f"   Hospitalizations: {safe_count(cohort_df['hospitalization_id'].nunique())}")
+print(f"   Patients: {safe_count(cohort_df['patient_id'].nunique())}")
 
 # =============================================================================
 # SAVE OUTPUT

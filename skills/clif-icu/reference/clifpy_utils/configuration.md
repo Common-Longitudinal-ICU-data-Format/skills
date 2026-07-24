@@ -132,6 +132,7 @@ This creates a properly formatted JSON config file at the specified path.
 
 | Topic | File |
 |-------|------|
+| PHI-safe agentic development | [../phi-safe-development.md](../phi-safe-development.md) |
 | Table class methods | [table_classes.md](table_classes.md) |
 | ClifOrchestrator usage | [orchestrator.md](orchestrator.md) |
 | Utility functions | [clifpy_functions.md](clifpy_functions.md) |
