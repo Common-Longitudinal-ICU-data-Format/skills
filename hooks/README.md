@@ -14,7 +14,9 @@ Blocks agent tool access to real-data directories configured by your site. Enfor
 
 ### phi_scan.py (output scanner, advisory)
 
-Arrives in the next task — will scan command output for suspected PHI patterns and warn (advisory, non-blocking).
+Scans command output for suspected PHI patterns and warns the agent (advisory, non-blocking). When PHI-shaped data is detected, the agent is instructed to stop and sanitize its response. Synthetic data will trigger false positives by design — the warning message explains how to proceed if the data is confirmed non-PHI.
+
+**How it works:** The hook examines the tool's response text for patterns that resemble medical record numbers, social security numbers, and birth dates. If any patterns are found, it prints a JSON warning to stdout and exits with code 0 (advisory, never blocks). Set `CLIF_PHI_SCAN=off` to disable scanning.
 
 ## Configuration
 

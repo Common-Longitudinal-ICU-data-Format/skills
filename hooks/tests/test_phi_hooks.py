@@ -115,3 +115,35 @@ def test_crlf_line_endings_blocked(tmp_path):
         payload("Read", file_path=str(phi / "file.csv")),
         env_extra={"CLIF_PHI_PATHS_FILE": str(cfg)}, cwd=tmp_path)
     assert rc == 2
+
+def test_scan_flags_mrn_pattern():
+    rc, out, _ = run_hook("phi_scan.py", {
+        "tool_name": "Bash", "tool_input": {"command": "cat notes.txt"},
+        "tool_response": {"stdout": "Patient MRN: 84512937 admitted 03/14/1962"}})
+    assert rc == 0
+    ctx = json.loads(out)["hookSpecificOutput"]["additionalContext"]
+    assert "PHI-shaped" in ctx
+
+def test_scan_flags_ssn_and_dob():
+    rc, out, _ = run_hook("phi_scan.py", {
+        "tool_name": "Read", "tool_input": {"file_path": "/x/notes.txt"},
+        "tool_response": "SSN 123-45-6789, DOB: 1957-03-02"})
+    assert json.loads(out)["hookSpecificOutput"]["additionalContext"]
+
+def test_scan_silent_on_clean_output():
+    rc, out, _ = run_hook("phi_scan.py", {
+        "tool_name": "Bash", "tool_input": {"command": "pytest -q"},
+        "tool_response": {"stdout": "14 passed in 3.2s"}})
+    assert rc == 0 and out.strip() == ""
+
+def test_scan_off_switch():
+    rc, out, _ = run_hook("phi_scan.py", {
+        "tool_name": "Bash", "tool_input": {},
+        "tool_response": {"stdout": "MRN: 84512937"}},
+        env_extra={"CLIF_PHI_SCAN": "off"})
+    assert rc == 0 and out.strip() == ""
+
+def test_scan_malformed_input_silent():
+    p = subprocess.run([sys.executable, str(HOOKS / "phi_scan.py")], input="{",
+                       text=True, capture_output=True)
+    assert p.returncode == 0 and p.stdout.strip() == ""
