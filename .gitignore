@@ -12,3 +12,10 @@ clif_demo_config.json
 
 # clif-bench: pinned data stood up locally by bench/setup_bench_data.sh (never commit).
 bench/.data/
+
+# clifpy ClifOrchestrator's default output_directory ("./output" per
+# bench/.data/config.json) — validation/error logs written as a side effect
+# of instantiating ClifOrchestrator in bench task solutions (T05, T07); not
+# task output, never commit.
+output/
+bench/output/

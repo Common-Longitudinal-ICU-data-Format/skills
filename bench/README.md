@@ -41,10 +41,26 @@ python3 bench/generate_truth.py     # (maintainer-run) regenerate expected.json 
 cd bench && python3 -m pytest test_bench.py -v
 ```
 
-Expected result: `T01_crrt_cohort` and `T08_category_trap` both `PASSED`.
+Expected result: all 10 tasks (`T01`–`T10`) `PASSED`.
 `bench/setup_bench_data.sh` requires `pandas`, `pyarrow`, and `clifpy`
 (`python3 -m pip install --user pandas pyarrow clifpy` if missing) plus network
 access to `github.com` to clone clif-forge.
+
+**Python version (added for T02–T10, 2026-07-31)**: `clifpy==0.5.0`
+requires **Python 3.10+**. Its `utils/unit_converter.py` does
+`from types import NoneType`, which only exists in the stdlib `types`
+module from 3.10 onward — under Python 3.9 (e.g. macOS's
+`/usr/bin/python3` / Command Line Tools Python), any solution that imports
+`ClifOrchestrator` (`T05`, `T07`) fails at import time with
+`ImportError: cannot import name 'NoneType'`. Separately, `clifpy`'s SOFA
+utility (`utils/sofa.py`) uses DuckDB's colon-alias `SELECT col: expr`
+syntax, which requires `duckdb >= 1.x` — the `duckdb==0.10.2` version that
+was resolvable at the time `T01`/`T08` were built raises
+`ParserException: syntax error at or near ":"` on that syntax. Run
+`bench/`'s commands with a Python 3.10+ interpreter that has
+`pandas`, `pyarrow`, `clifpy`, `pyyaml`, and `duckdb>=1.0` installed (e.g.
+a throwaway venv built from `python3.10 -m venv`); do not rely on the
+system `python3` if it resolves to 3.9.
 
 ## How to score an agent
 
@@ -165,6 +181,154 @@ over.** It does not affect `T08`'s correctness — `T08`'s truth is computed
 directly from `clif_respiratory_support.parquet`, independent of
 `clif_truth.parquet` — but any future task built on `clif_truth.parquet`
 `resp_flag` should account for this discrepancy.
+
+## T02–T05, T09, T10: category-literal verification
+
+For every task below, the category literal(s) hardcoded in `solution.py`/
+`generate_truth.py` were checked against both (a) an actual `value_counts()`
+over `bench/.data/subset/clif_*.parquet` and (b) the matching
+`skills/clif-icu/schemas/*_schema.yaml` `permissible_values`, per the same
+discipline as T08 above:
+
+| Task | Column | Literal(s) | Present in subset? | In schema? |
+|---|---|---|---|---|
+| T02 | `respiratory_support.device_category` | `IMV` | yes (260 rows / 216 hospitalizations) | yes |
+| T03 | `hospitalization.discharge_category` | `Expired` | yes (43 rows) | yes |
+| T04 | `adt.location_category` | `icu` | yes (1150 rows) | yes |
+| T05 | `medication_admin_continuous.med_category` | `norepinephrine` | yes (2509 rows, 160 hospitalizations) | yes |
+| T09 | `patient.race_category`, `patient.sex_category` | all 7 race / 2 sex values in the subset | yes | yes |
+| T10 | `labs.lab_category` | `potassium` | yes (7308 rows) | yes |
+
+No literal needed correction. Note `T02`'s `n_imv_hospitalizations` (216)
+is computed from the same `device_category == "IMV"` definition as `T08`'s
+`n_imv_hospitalizations` and both independently land on **216** — a useful
+cross-task sanity check that the literal and the counting logic are stable
+across two separately-written solutions.
+
+**T05 dose units**: `medication_admin_continuous.med_dose_unit` for
+`norepinephrine` is **uniformly** `"mcg/kg/min"` across all 2509 rows in the
+500-hospitalization subset (verified by `value_counts()` before writing
+`truth_T05_norepi_dose`, which asserts this and raises if it ever stops
+being true) — so no weight-based unit conversion is actually needed to get
+a correct number here, though `solution.py` still calls clifpy's
+`ClifOrchestrator.convert_dose_units_for_continuous_meds(preferred_units=
+{"norepinephrine": "mcg/kg/min"})` per the brief, exercising the real
+clifpy API. Note that call's `conversion_counts` reports `_convert_status`
+`"cannot convert to a weighted unit if weight_kg is missing"` for **all**
+2509 rows (this subset has **zero** `weight_kg` vitals rows for any of the
+500 hospitalizations — verified), which looks alarming but is a red
+herring here: clifpy's converter falls back to the original value when the
+target unit already equals the source unit, and the fallback values are
+verified numerically identical to the raw `med_dose` column (max diff
+0.0). This absence of `weight_kg` matters much more for T06 below, where it
+is not a no-op.
+
+## T06: day-1 SOFA — independent-implementations pair, not clifpy-locked
+
+The brief's original plan for T06 was to lock truth to `ClifOrchestrator.
+compute_sofa_scores()`'s output at a pinned `clifpy` version (recording
+`_clifpy_version` in `expected.json`). That plan was abandoned after
+`compute_sofa_scores()` proved **not usable headlessly** against this
+pinned subset once restricted to a day-1 (first 24h) cohort window — the
+exact restriction T06 requires. Root-caused as follows:
+
+1. `clifpy==0.5.0`'s `utils/sofa.py` uses DuckDB's `SELECT col: expr`
+   colon-alias syntax, which raises `ParserException` under the
+   `duckdb==0.10.2` that was resolvable in this environment. Fixed by
+   installing `duckdb>=1.0` (see "Python version" note above) — this alone
+   was not sufficient.
+2. `compute_sofa()`'s cardiovascular-component query
+   (`_agg_extremal_values_by_id`) selects a **fixed** column list including
+   `dobutamine_mcg_kg_min`. That column only exists in the wide dataset if
+   at least one `dobutamine` row survives unit conversion to `mcg/kg/min`.
+   Conversion requires `weight_kg`, which — as noted under T05 above — is
+   **entirely absent** from this subset's `vitals` table (0 of 500
+   hospitalizations). Supplying a synthetic default weight unblocks
+   conversion, but that's moot: every `dobutamine` administration in the
+   500-hospitalization subset occurs **27–451 hours after admission**
+   (verified directly against `clif_medication_admin_continuous.parquet`),
+   i.e. *never* inside any hospitalization's day-1 window. So once
+   `compute_sofa_scores()` is called with a day-1 `cohort_df`, the
+   resulting windowed wide dataset has zero `dobutamine_*` rows for *any*
+   hospitalization, the pivot never creates that column, and the
+   fixed-column SQL raises `Binder Error: Column "dobutamine_mcg_kg_min"
+   was selected but was not found in the FROM clause`. Confirmed this is
+   specifically the day-1-window trigger by calling
+   `compute_sofa_scores(id_name='hospitalization_id')` with **no**
+   `cohort_df` (whole-encounter SOFA) — that succeeds, because dobutamine
+   does appear somewhere across the full encounter for a few
+   hospitalizations.
+
+This is a genuine `clifpy` robustness bug (a fixed-column aggregation query
+should tolerate an entirely-missing medication column, e.g. via
+`COLUMNS(*)`-style dynamic selection or explicit fill, not crash), not a
+data-quality issue this bench should paper over. Per the brief's documented
+fallback ("if clifpy has NO usable SOFA computation, redefine T06's
+solution+truth as an independent-implementations pair"), `T06_day1_sofa`
+is implemented as **two independently-written pandas implementations of
+the same fully-specified SOFA rubric** (rubric spelled out in
+`prompt.md`, standard Vincent 1996 six-component SOFA, matching clifpy's
+own `REQUIRED_SOFA_CATEGORIES_BY_TABLE` variable set for parity), not as a
+clifpy-locked regression:
+
+- `solution.py` computes each component per-hospitalization via a Python
+  loop with scalar bin-lookup helper functions.
+- `generate_truth.py`'s `truth_T06_day1_sofa()` computes the same rubric
+  fully vectorized (one wide per-hospitalization table + `numpy.select`
+  bin edges), with no per-hospitalization loop.
+
+**Cardiovascular-component limitation (documented, not hidden)**: because
+`weight_kg` is entirely absent from this subset, the cardiovascular
+component only scores from `map` and `norepinephrine` (the one vasoactive
+whose dose is already natively recorded in `mcg/kg/min` in this dataset —
+see T05 above). `epinephrine`, `dopamine`, and `dobutamine` — all present
+in the subset (204, 112, and 33 rows respectively) — are **excluded** from
+the cardiovascular score, since scoring them would require fabricating a
+weight. This under-scores hospitalizations on those other pressors
+relative to a full clinical SOFA and is called out explicitly in
+`prompt.md` so a scored agent isn't guessing at an undocumented rule.
+Result: `n_scored=100`, `mean_day1_sofa=7.92` (range 2–16 across the
+cohort) — plausible for an ICU-flavored synthetic cohort, not clustered at
+an extreme.
+
+## T07: hourly heart-rate binning — chosen semantic
+
+`ClifOrchestrator.convert_wide_to_hourly()` (called on a `create_wide_dataset()`
+wide frame) does **not** bin to wall-clock floor-hour; it produces hourly
+windows anchored to each hospitalization's own admission time (window 0 =
+`[admission_dttm, admission_dttm+1h)`, etc. — verified: window boundaries
+land on e.g. `...:30:19`, matching a specific hospitalization's admission
+timestamp, not `:00:00`). Separately, `create_wide_dataset()`'s pivoted
+`event_time`/`heart_rate` columns were found to contain 138 rows with no
+corresponding `(hospitalization_id, recorded_dttm)` pair in the raw
+`vitals` parquet for the same cohort (2188 vs. 2050 heart-rate rows,
+zero raw-only rows, 138 wide-only rows) — an unexplained discrepancy
+introduced by `create_wide_dataset()`'s internal event-time assembly, not
+reconcilable exactly against an independently-written pandas
+implementation without reverse-engineering that internal logic.
+
+Given the brief's explicit instruction to "reconcile deliberately and
+document the chosen semantic" when clifpy's binning differs from a plain
+pandas approach: `T07`'s chosen semantic is (1) **admission-anchored**
+hourly windows (not wall-clock floor), spelled out exactly in `prompt.md`,
+and (2) data assembly via `ClifOrchestrator.load_table()` (clifpy's
+table-level loader, schema/config-validated — verified byte-identical to a
+raw `pd.read_parquet` read for this table/filter: 2050 rows, max value
+diff 0.0) rather than `create_wide_dataset()`'s pivot, specifically to
+avoid the unreconciled 138-row discrepancy above. `solution.py` uses
+`co.load_table('vitals', filters=...)` (still a real clifpy API call) then
+applies the documented admission-anchored binning in pandas;
+`truth_T07_hourly_wide()` reads the same `vitals`/`hospitalization`
+parquet directly with no clifpy dependency, applying the identical binning
+formula independently. Both land on `n_rows=2050`,
+`mean_heart_rate=88.57`.
+
+**`create_wide_dataset()`/`load_table()` API note**: `hospitalization_ids`
+filters passed to both functions must be **strings**, even though the
+underlying parquet's `hospitalization_id` column is `int64` — passing
+`int`s silently filters every base table to 0 rows (no error), which was
+initially mistaken for missing data before being traced to the type
+mismatch.
 
 ## Config key name
 
