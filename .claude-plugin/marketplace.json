@@ -16,7 +16,24 @@
       "strict": false,
       "skills": ["./skills/clif-icu"],
       "agents": ["./agents/clif-buddy-tester.md", "./agents/clif-phi-auditor.md", "./agents/clif-code-reviewer.md"],
-      "hooks": "./hooks/hooks.json"
+      "hooks": {
+        "PreToolUse": [
+          {
+            "matcher": "Read|Glob|Grep|Bash|Edit|Write|NotebookEdit",
+            "hooks": [
+              {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/phi_guard.py\""}
+            ]
+          }
+        ],
+        "PostToolUse": [
+          {
+            "matcher": "Read|Bash",
+            "hooks": [
+              {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/phi_scan.py\""}
+            ]
+          }
+        ]
+      }
     }
   ]
 }
