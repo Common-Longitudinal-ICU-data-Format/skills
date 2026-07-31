@@ -46,8 +46,7 @@ PHI/RHI (real patient data)** — an agent session captures stdout *and* uncaugh
 tracebacks. The skill self-enforces this two-phase workflow:
 
 1. **Develop with the agent against non-PHI data only** — synthetic/demo CLIF data.
-   Run `skills/clif-icu/scripts/setup_dev_data.sh` to stand up a non-PHI sandbox in
-   one command (clones `synthetic_clif`, generates a small cohort, writes a demo config).
+   Run `skills/clif-icu/scripts/setup_dev_data.sh --source clif-forge-sample ./dev_data` for the fastest path to a non-PHI sandbox, or see [`reference/synthetic-datasets.md`](skills/clif-icu/reference/synthetic-datasets.md) for other options.
 2. **Run on real PHI yourself**, in your own secure/HIPAA environment, with the agent
    absent. Sanitize before pasting anything back — never raw tracebacks, row previews,
    IDs, dates, note text, or small-cell counts.
