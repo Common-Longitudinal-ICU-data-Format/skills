@@ -102,8 +102,19 @@ deterministically re-derivable from the pinned ref by anyone who runs
 ## T08: category trap
 
 `bench/tasks/T08_category_trap/prompt.md` deliberately does not explain why the
-task is interesting — an agent under test should not get a hint. The trap:
-this dataset is CLIF **2.1**, whose `respiratory_support.device_category`
+task is interesting — an agent under test should not get a hint. This extends
+to the prompt's own title: an earlier draft titled the prompt
+"High-flow nasal cannula usage (category-convention trap)", which leaked the
+trap to the scored agent via the H1 itself (an agent reading its own task
+title before reasoning about the query would see "trap" and go looking for
+one). The committed `prompt.md` title is the neutral
+"High-flow nasal cannula and invasive ventilation usage" — plainly descriptive
+of the question asked, with neither "trap" nor "convention" appearing
+anywhere in the file. The task **directory** name `T08_category_trap/` still
+names the trap (for maintainers browsing `bench/tasks/`), which is fine: per
+"How to score an agent" above, a scored agent is only ever given the contents
+of `prompt.md`, never the directory name or path components. The trap: this
+dataset is CLIF **2.1**, whose `respiratory_support.device_category`
 permissible values (`skills/clif-icu/schemas/respiratory_support_schema.yaml`)
 are `IMV`, `NIPPV`, `CPAP`, `High Flow NC`, `Face Mask`, `Trach Collar`,
 `Nasal Cannula`, `Room Air`, `Other`. CLIF **3.0** renamed several of these
