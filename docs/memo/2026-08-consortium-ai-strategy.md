@@ -40,13 +40,16 @@ install).
 
 **1. Mechanical PHI guardrails.** Guidance became enforcement. `hooks/phi_guard.py`
 is a `PreToolUse` hook: a site lists its real-data directories in
-`.clif-phi-paths`, and the agent then *cannot* read them. In a headless
-end-to-end test the agent's attempt to read a file under a configured path was
-refused by the hook, which returned:
+`.clif-phi-paths`, and the agent's read of those directories is then refused at
+the tool-call layer (see the limits below). A headless end-to-end test confirmed
+that behavior: the agent's attempt to read a file under a configured path was
+blocked by the hook. The refusal string, verbatim from `hooks/phi_guard.py`:
 
 > `BLOCKED by clif-icu PHI guard: '<path>' is inside the configured real-data
 > path '<dir>'. Agents must never receive PHI. Use the non-PHI sandbox
-> (skills/clif-icu/scripts/setup_dev_data.sh); see reference/phi-safe-development.md.`
+> (skills/clif-icu/scripts/setup_dev_data.sh); see reference/phi-safe-development.md.
+> To change guarded paths, edit the PHI paths config (.clif-phi-paths /
+> ~/.clif/phi-paths).`
 
 The block came from the hook shipped by the plugin, not a hand-wired local
 config. A second hook, `hooks/phi_scan.py`, watches the other direction: it
@@ -125,9 +128,9 @@ We would rather undersell this than have a site over-trust it.
 - **Bash matching is substring-only.** Relative paths, paths assembled from
   shell variables, and globs are not caught. Use absolute paths to PHI in your
   scripts.
-- **It can over-block.** On case-sensitive filesystems, the guard's casefolded
-  comparison may refuse legitimate reads that differ from a configured path
-  only in casing. We accept that trade for a guardrail.
+- **It can over-block.** On case-sensitive filesystems, the guard's
+  case-insensitive path comparison may refuse legitimate reads that differ from
+  a configured path only in casing. We accept that trade for a guardrail.
 - **Claude Code only.** The hooks are a Claude Code mechanism. Other tools get
   the skill text and the agent guidance, but no mechanical guard — a
   cross-tool portability matrix is phase B work and does not exist today.
@@ -183,7 +186,8 @@ an agent *knows* and *may do*; MCP would give it typed, server-mediated
 *capabilities* — e.g. a site-local server exposing "validate this table against
 the CLIF schema" or "run this query" as tools, where the server, not the agent,
 holds the data connection. That is a stronger boundary than a path guard,
-because the agent never gets a filesystem handle at all. It is also a larger
+because the data connection lives behind the server rather than in the agent's
+tools. It is also a larger
 build, which is why it is phase C and not phase A.
 
 **Evals.** `clif-bench` exists so that claims about AI on CLIF work become
@@ -201,7 +205,7 @@ One task is worth naming because it encodes the failure mode this whole effort
 targets. `T08` asks for high-flow-nasal-cannula and IMV usage against a CLIF
 2.1 dataset. An agent that assumes CLIF 3.0 category conventions and filters on
 lowercase slugs gets zero matches, no error, and a confidently wrong answer.
-Nothing in the prompt hints at the trap.
+The prompt names the dataset version and nothing else.
 
 **Synthetic data generators.** Three options, compared table-by-table in
 `skills/clif-icu/reference/synthetic-datasets.md`: `synthetic_clif`

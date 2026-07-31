@@ -175,9 +175,12 @@ clif-skills/
 │   └── tests/                  # Hook test suite
 ├── bench/                      # clif-bench: 10 golden tasks on pinned synthetic data
 │   ├── tasks/                  # T01–T10 (prompt.md, solution.py, expected.json)
+│   ├── test_bench.py           # pytest entry point (runs every task)
+│   ├── conftest.py             # Bench fixtures / path setup
 │   ├── generate_truth.py       # Independent ground-truth generator
 │   ├── harness.py              # Comparison harness
 │   ├── setup_bench_data.sh     # Stands up pinned data in bench/.data (git-ignored)
+│   ├── subset_bench_data.py    # Deterministic 500-hospitalization slice
 │   └── pin.json                # Data-source pin (repo + SHA)
 ├── docs/
 │   ├── memo/                   # Consortium strategy memos
