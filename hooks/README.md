@@ -20,7 +20,7 @@ Arrives in the next task — will scan command output for suspected PHI patterns
 
 ### PHI Paths Config File
 
-The guard reads from the first-existing file in this list:
+The guard reads from the union of all existing files in this list:
 1. `$CLIF_PHI_PATHS_FILE` environment variable (if set to a valid path)
 2. `./.clif-phi-paths` in the current working directory
 3. `~/.clif/phi-paths` in your home directory
@@ -51,5 +51,7 @@ This is **risk-reduction defense-in-depth, not a sandbox and not compliance**. B
 - **Claude Code only:** This hook only works within Claude Code sessions. Other tools (direct Python, shell, data pipeline orchestrators) receive no mechanical guard. You are responsible for keeping PHI data out of those contexts.
 
 - **Guardian, not barrier:** The guard is risk mitigation. Determined agent misuse (modifying config, forking processes, using eval patterns) may circumvent it. Use social controls, file permissions, and code review alongside this tool.
+
+- **Inactive until configured:** The guard has no effect if none of the three config sources exist (env var, `.clif-phi-paths`, `~/.clif/phi-paths`). This is by design — you opt in to PHI protection by creating a config file.
 
 For more on PHI-safe development practices, see `skills/clif-icu/reference/phi-safe-development.md`.
