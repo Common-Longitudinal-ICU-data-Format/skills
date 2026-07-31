@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 
+# macOS
+.DS_Store
+
 # Local non-PHI dev sandbox produced by scripts/setup_dev_data.sh (never commit data).
 # Unanchored so they match at any depth: the script can be run from the repo root
 # OR from skills/clif-icu/, so anchored /dev_data/ would miss skills/clif-icu/dev_data/.

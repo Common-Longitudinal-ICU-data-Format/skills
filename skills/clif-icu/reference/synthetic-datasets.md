@@ -16,7 +16,7 @@ Three non-PHI options; all emit CLIF 2.1. None contain real patient data.
 - Agent-assisted development, demos, CI: `clif-forge-sample` (fastest, redistributable) or `synthetic_clif`.
 - Statistical realism (model prototyping, plausibility checks): `clif-forge` (calibrated) — still synthetic; never publish inferences from it.
 - Validating against real-world messiness: MIMIC-IV-Ext-CLIF — but treat as restricted data; see the BAA/channel rules in [phi-safe-development.md](phi-safe-development.md) before letting ANY agent see it.
-- clif-bench (this repo's benchmark suite, landing in bench/) will pin `clif-forge-sample` for its ground truth.
+- clif-bench (this repo's benchmark suite, in `bench/`) pins `clif-forge-sample` for its ground truth — see `bench/pin.json`.
 
 One command for each (from skill root):
 ```bash

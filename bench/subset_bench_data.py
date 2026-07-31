@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Deterministic bench subset: first N hospitalization_ids (ascending numeric)."""
-import json, shutil, sys
+import json, sys
 from pathlib import Path
 import pandas as pd
 

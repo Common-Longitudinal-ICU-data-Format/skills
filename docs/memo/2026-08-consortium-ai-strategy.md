@@ -70,7 +70,7 @@ sitting unused. Which one to pick, and why, is in
 
 **3. clif-bench.** Ten golden tasks (`bench/`) against pinned synthetic data,
 each with an independently written reference solution and a separately written
-ground truth, so a shared bug in one cannot silently confirm the other. All ten
+ground truth, so a shared bug in one is unlikely to silently confirm the other. All ten
 pass; the data is deterministically regenerable from a pinned ref, and
 `expected.json` is generated, never hand-edited. `bench/README.md` documents the
 scoring protocol, so a site can score *its own* model, prompt, or tooling choice

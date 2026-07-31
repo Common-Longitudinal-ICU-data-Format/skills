@@ -20,7 +20,13 @@ def _pq(name, cols=None):
 def truth_T01_crrt_cohort():
     ids_crrt = set(_pq("crrt_therapy", ["hospitalization_id"]).hospitalization_id)
     ids_all = set(_pq("hospitalization", ["hospitalization_id"]).hospitalization_id)
-    return {"n_crrt_hospitalizations": len(ids_crrt & ids_all) if ids_crrt <= ids_all else len(ids_crrt),
+    orphans = ids_crrt - ids_all
+    if orphans:
+        raise ValueError(
+            f"T01 truth: crrt_therapy has {len(orphans)} hospitalization_id(s) "
+            f"absent from the hospitalization table (referential-integrity "
+            f"violation) — e.g. {sorted(orphans)[:5]}")
+    return {"n_crrt_hospitalizations": len(ids_crrt),
             "pct_of_all_hospitalizations": round(100 * len(ids_crrt) / len(ids_all), 2)}
 
 def truth_T08_category_trap():

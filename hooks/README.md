@@ -32,7 +32,7 @@ The guard reads from the union of all existing files in this list:
 **Example:**
 ```
 # Real patient data at this site
-/data/umich/real_data
+/data/<site>/real_data
 /scratch/cohort_exports
 # Archive from last year
 /archive/2024/raw
@@ -41,6 +41,26 @@ The guard reads from the union of all existing files in this list:
 ### Activation
 
 The guard is **inactive until a config file exists**. If none of the three config sources are present, the hook allows all operations. This lets you opt in to PHI protection.
+
+## Two copies of this config — keep them in sync
+
+The `hooks` object in this file (`hooks/hooks.json`) is **duplicated**, not
+referenced, in `.claude-plugin/marketplace.json`'s `plugins[0].hooks` key.
+This file (`hooks/hooks.json`) is what a `--plugin-dir` dev checkout loads;
+`marketplace.json` is what an installed plugin (via `/plugin marketplace add`
++ `/plugin install`) loads. There is currently no single source of truth —
+if you add, remove, or change a hook matcher/command, update **both** files
+or the two install paths will silently diverge.
+
+**Manual check (do this after editing either file):** launch Claude Code
+with the plugin loaded (either `--plugin-dir` pointed at this repo, or an
+installed `clif-icu@clif-skills`) and run `/hooks`. It must show exactly
+**2 entries** — one `PreToolUse` (`phi_guard.py`) and one `PostToolUse`
+(`phi_scan.py`). If it shows **4**, both `hooks/hooks.json` and
+`marketplace.json` were loaded and registered their hooks independently
+(e.g. a `--plugin-dir` dev checkout of a repo that is *also* installed from
+the marketplace) — deduplicate your install before relying on the guard, or
+you'll see duplicate PHI-guard/scan messages per tool call.
 
 ## Known Limitations
 

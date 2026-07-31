@@ -118,8 +118,8 @@ See "Known Limitations" in [`hooks/README.md`](hooks/README.md).
 `bench/` is a golden-task benchmark for the skill: **10 tasks** (`T01`–`T10`) run
 against pinned, synthetic (non-PHI) CLIF data, currently **10/10 passing**. Each
 task's ground truth is *generated* (never hand-edited) by an implementation written
-independently of the reference solution, so a shared bug in one cannot silently
-confirm the other. Data is pinned by SHA and deterministically re-derivable.
+independently of the reference solution, so a shared bug in one is unlikely to
+silently confirm the other. Data is pinned by SHA and deterministically re-derivable.
 
 ```bash
 bash bench/setup_bench_data.sh          # pinned data into bench/.data (git-ignored)

@@ -1,4 +1,5 @@
 {
+  "_comment": "This hook set is duplicated in .claude-plugin/marketplace.json (installed-plugin path). This file is the --plugin-dir dev path. Keep both in sync — see hooks/README.md.",
   "hooks": {
     "PreToolUse": [
       {

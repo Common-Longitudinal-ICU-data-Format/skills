@@ -3,8 +3,12 @@
 `clif-bench` is a golden-task benchmark harness for the `clif-icu` skill, running
 against pinned, synthetic (non-PHI) CLIF data. It serves three purposes:
 
-1. **CI for the skill** — a regression check that skill-authored guidance still
-   produces correct aggregate answers as clifpy/the skill evolve.
+1. **A maintainer-run regression check** — re-run by hand (or by a future CI
+   job — no workflow wires this up yet) after edits to the skill, clifpy, or
+   the pinned data, to catch answers that silently drifted. Most tasks
+   (8/10) call pandas directly rather than clifpy, so today it mainly pins
+   data shape and arithmetic, not the skill's own guidance; wiring it into
+   CI is future work (see Roadmap in `docs/memo/2026-08-consortium-ai-strategy.md`).
 2. **A citable correctness benchmark** — an agent (or a human) is scored against
    an independently-computed ground truth on well-defined aggregate questions,
    so "the skill helps" is a number, not a vibe.
@@ -114,6 +118,29 @@ git-ignored, not published — the manifest above documents the *source* dataset
 provenance, not a checksum of the subset itself, since the subset is
 deterministically re-derivable from the pinned ref by anyone who runs
 `setup_bench_data.sh`.
+
+### Re-pin checklist
+
+Re-pinning `pin.json` to a new `clif-forge` ref (a tag once one exists, or a
+newer SHA) can silently change task answers. Before committing a re-pin:
+
+1. **Verify `hospitalization_id` is still unique ints (as a numeric string).**
+   `subset_bench_data.py`'s deterministic slice depends on sorting
+   `hospitalization_id` numerically (`pd.to_numeric`) and taking the first N —
+   a format change (non-numeric IDs, duplicates) breaks that ordering silently.
+2. **Re-check T09 for newly-empty cells.** `T09_small_cell`'s zero-cell rule
+   (see prompt.md) means a re-pinned subset could introduce or remove
+   zero-count (race, sex) combinations; re-verify `expected.json` still
+   reflects the new subset's actual observed categories.
+3. **Re-run `generate_truth.py` twice and diff.** Ground truth must be
+   deterministic — `python3 generate_truth.py && git status --porcelain
+   tasks/` after the first run establishes the new baseline; run it a second
+   time and confirm `git status --porcelain tasks/` is empty (byte-identical
+   output).
+4. **Re-verify category literals.** Repeat the check documented in "T02–T05,
+   T09, T10: category-literal verification" below — hardcoded literals
+   (`"IMV"`, `"Expired"`, `"norepinephrine"`, etc.) must still appear in the
+   re-pinned data and in `skills/clif-icu/schemas/*_schema.yaml`.
 
 ## T08: category trap
 
