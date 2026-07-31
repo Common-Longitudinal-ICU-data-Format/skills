@@ -15,14 +15,14 @@ Three non-PHI options; all emit CLIF 2.1. None contain real patient data.
 **Rules of thumb**
 - Agent-assisted development, demos, CI: `clif-forge-sample` (fastest, redistributable) or `synthetic_clif`.
 - Statistical realism (model prototyping, plausibility checks): `clif-forge` (calibrated) — still synthetic; never publish inferences from it.
-- Validating against real-world messiness: MIMIC-IV-Ext-CLIF — but treat as restricted data; see the BAA/channel rules in phi-safe-development.md before letting ANY agent see it.
-- clif-bench pins `clif-forge-sample` for ground truth (see bench/pin.json).
+- Validating against real-world messiness: MIMIC-IV-Ext-CLIF — but treat as restricted data; see the BAA/channel rules in [phi-safe-development.md](phi-safe-development.md) before letting ANY agent see it.
+- clif-bench (this repo's benchmark suite, landing in bench/) will pin `clif-forge-sample` for its ground truth.
 
-One command for each (from scripts/):
+One command for each (from skill root):
 ```bash
-setup_dev_data.sh --source clif-forge-sample ./dev_data     # fastest
-setup_dev_data.sh --source synthetic-clif ./dev_data 100    # 28 tables, generated
-setup_dev_data.sh --source clif-forge-generate ./dev_data 500  # custom recipe
+./scripts/setup_dev_data.sh --source clif-forge-sample ./dev_data     # fastest
+./scripts/setup_dev_data.sh --source synthetic-clif ./dev_data 100    # 28 tables, generated
+./scripts/setup_dev_data.sh --source clif-forge-generate ./dev_data 500  # custom recipe
 ```
 
 ---
