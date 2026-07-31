@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
+.pytest_cache/
 
 # Local non-PHI dev sandbox produced by scripts/setup_dev_data.sh (never commit data).
 # Unanchored so they match at any depth: the script can be run from the repo root
@@ -8,3 +9,6 @@ __pycache__/
 dev_data/
 synthetic_clif/
 clif_demo_config.json
+
+# clif-bench: pinned data stood up locally by bench/setup_bench_data.sh (never commit).
+bench/.data/
