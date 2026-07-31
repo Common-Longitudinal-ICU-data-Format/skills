@@ -15,7 +15,7 @@
       "source": "./",
       "strict": false,
       "skills": ["./skills/clif-icu"],
-      "agents": ["./agents/clif-buddy-tester.md"],
+      "agents": ["./agents/clif-buddy-tester.md", "./agents/clif-phi-auditor.md", "./agents/clif-code-reviewer.md"],
       "hooks": "./hooks/hooks.json"
     }
   ]
