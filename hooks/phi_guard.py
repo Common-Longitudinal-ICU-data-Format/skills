@@ -42,7 +42,10 @@ def load_phi_paths():
 
 def is_under(target, root):
     t = os.path.realpath(os.path.expanduser(target))
-    return t == root or t.startswith(root + os.sep)
+    if t == root or t.startswith(root + os.sep):
+        return True
+    tf, rf = t.casefold(), root.casefold()
+    return tf == rf or tf.startswith(rf + os.sep)
 
 
 def block(value, raw):
@@ -60,7 +63,11 @@ def main():
         data = json.load(sys.stdin)
     except Exception:
         return 0  # malformed input: never break the session
+    if not isinstance(data, dict):
+        return 0
     tool_input = data.get("tool_input") or {}
+    if not isinstance(tool_input, dict):
+        return 0
     phi = load_phi_paths()
     if not phi:
         return 0

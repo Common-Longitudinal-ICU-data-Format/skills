@@ -72,3 +72,46 @@ def test_malformed_stdin_allows(tmp_path):
     p = subprocess.run([sys.executable, str(HOOKS / "phi_guard.py")], input="not json",
                        text=True, capture_output=True)
     assert p.returncode == 0  # fail-open on malformed input, never break the session
+
+def test_case_variant_path_blocked(tmp_path):
+    # macOS APFS case-insensitivity: /real_data configured, REAL_DATA/file.csv should still block
+    phi = tmp_path / "real_data"; phi.mkdir()
+    (phi / "labs.csv").write_text("x")
+    # Use uppercase variant (on case-insensitive FS, this resolves to the same real_data dir)
+    case_variant = str(tmp_path / "REAL_DATA" / "labs.csv")
+    rc, _, _ = run_hook("phi_guard.py",
+        payload("Read", file_path=case_variant),
+        env_extra=_cfg(tmp_path, str(phi)), cwd=tmp_path)
+    assert rc == 2
+
+def test_json_array_payload_allows(tmp_path):
+    # valid JSON but wrong shape: top-level array instead of object
+    p = subprocess.run([sys.executable, str(HOOKS / "phi_guard.py")],
+                       input='[{"tool_name":"Read"}]', text=True, capture_output=True)
+    assert p.returncode == 0
+
+def test_tool_input_string_allows(tmp_path):
+    # valid JSON but tool_input is string instead of dict
+    p = subprocess.run([sys.executable, str(HOOKS / "phi_guard.py")],
+                       input='{"tool_name":"Read","tool_input":"oops"}',
+                       text=True, capture_output=True)
+    assert p.returncode == 0
+
+def test_relative_path_inside_phi_dir_blocked(tmp_path):
+    # relative file_path from within tmp_path (cwd)
+    phi = tmp_path / "real_data"; phi.mkdir()
+    (phi / "data.csv").write_text("x")
+    rc, _, _ = run_hook("phi_guard.py",
+        payload("Read", file_path="real_data/data.csv"),
+        env_extra=_cfg(tmp_path, str(phi)), cwd=tmp_path)
+    assert rc == 2
+
+def test_crlf_line_endings_blocked(tmp_path):
+    # config file with CRLF line endings should still parse correctly
+    phi = tmp_path / "real_data"; phi.mkdir()
+    cfg = tmp_path / "phi-paths"
+    cfg.write_text("# comment\r\n" + str(phi) + "\r\n")
+    rc, _, _ = run_hook("phi_guard.py",
+        payload("Read", file_path=str(phi / "file.csv")),
+        env_extra={"CLIF_PHI_PATHS_FILE": str(cfg)}, cwd=tmp_path)
+    assert rc == 2
