@@ -12,15 +12,23 @@ PATTERNS = [
     ("MRN-like identifier", re.compile(r"\bMRN\W{0,3}\d{5,}", re.I)),
     ("SSN-like number",     re.compile(r"\b\d{3}-\d{2}-\d{4}\b")),
     ("DOB-like field",      re.compile(r"\bDOB\W{0,3}(?:\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{4})", re.I)),
-    ("birth-date-like value", re.compile(r"\b(?:19[0-9]{2}|20[0-4][0-9])-\d{2}-\d{2}\b.{0,20}\b(?:birth|dob)\b|\b(?:birth|dob)\b.{0,20}\b(?:19[0-9]{2}|20[0-4][0-9])-\d{2}-\d{2}\b", re.I)),
+    ("birth-date-like value", re.compile(
+        r"(?:birth\w*|\bdob\b).{0,24}\b(?:19[0-9]{2}|20[0-4][0-9])-\d{2}-\d{2}\b"
+        r"|\b(?:19[0-9]{2}|20[0-4][0-9])-\d{2}-\d{2}\b.{0,24}(?:birth\w*|\bdob\b)", re.I)),
 ]
 
 
-def response_text(resp):
+def response_text(resp, _depth=0):
+    if _depth > 8:
+        return ""
     if isinstance(resp, str):
         return resp
+    if isinstance(resp, (int, float)):
+        return str(resp)
     if isinstance(resp, dict):
-        return " ".join(str(v) for v in resp.values() if isinstance(v, (str, int, float)))
+        return " ".join(response_text(v, _depth + 1) for v in resp.values())
+    if isinstance(resp, list):
+        return " ".join(response_text(v, _depth + 1) for v in resp)
     return ""
 
 

@@ -147,3 +147,33 @@ def test_scan_malformed_input_silent():
     p = subprocess.run([sys.executable, str(HOOKS / "phi_scan.py")], input="{",
                        text=True, capture_output=True)
     assert p.returncode == 0 and p.stdout.strip() == ""
+
+def test_scan_nested_read_payload_flagged():
+    rc, out, _ = run_hook("phi_scan.py", {
+        "tool_name": "Read", "tool_input": {"file_path": "/x/notes.txt"},
+        "tool_response": {"type": "text", "file": {"filePath": "x", "content": "MRN: 84512937"}}})
+    assert rc == 0
+    ctx = json.loads(out)["hookSpecificOutput"]["additionalContext"]
+    assert "PHI-shaped" in ctx
+
+def test_scan_list_response_with_ssn_flagged():
+    rc, out, _ = run_hook("phi_scan.py", {
+        "tool_name": "Bash", "tool_input": {"command": "cat"},
+        "tool_response": ["line 1", "SSN 123-45-6789", "line 3"]})
+    assert rc == 0
+    ctx = json.loads(out)["hookSpecificOutput"]["additionalContext"]
+    assert "PHI-shaped" in ctx
+
+def test_scan_birth_date_column_flagged():
+    rc, out, _ = run_hook("phi_scan.py", {
+        "tool_name": "Read", "tool_input": {"file_path": "/x/data.csv"},
+        "tool_response": {"data": "birth_date: 1975-05-02"}})
+    assert rc == 0
+    ctx = json.loads(out)["hookSpecificOutput"]["additionalContext"]
+    assert "PHI-shaped" in ctx
+
+def test_scan_bare_timestamp_silent():
+    rc, out, _ = run_hook("phi_scan.py", {
+        "tool_name": "Bash", "tool_input": {"command": "date"},
+        "tool_response": {"stdout": "recorded_dttm 2024-01-15T10:00:00"}})
+    assert rc == 0 and out.strip() == ""

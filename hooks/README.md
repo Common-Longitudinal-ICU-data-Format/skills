@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains PreToolUse hooks that enforce PHI-safe workflows in Claude Code sessions for clif-icu work.
+This directory contains Claude Code hooks that enforce PHI-safe workflows in Claude Code sessions for clif-icu work.
 
 ### phi_guard.py (PHI blocker)
 
