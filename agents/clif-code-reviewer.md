@@ -47,6 +47,6 @@ pooled across sites. Hunt for that.
 - Verify claims against the actual schema YAMLs / mCIDE vocab / clifpy signatures
   in this plugin or the installed clifpy — not from memory.
 - Never run the code against real data; if execution helps, use the non-PHI
-  sandbox (scripts/setup_dev_data.sh).
+  sandbox (skills/clif-icu/scripts/setup_dev_data.sh).
 - Severity: BLOCKER (wrong numbers will pool), WARN (fragile), INFO. End with the
   footgun list, checked off, so coverage is auditable.
