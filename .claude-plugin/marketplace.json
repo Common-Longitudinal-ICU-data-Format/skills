@@ -6,15 +6,21 @@
   },
   "metadata": {
     "description": "CLIF ICU data format and clifpy Python library skills",
-    "version": "1.2.0"
+    "version": "1.3.0"
   },
   "plugins": [
     {
       "name": "clif-icu",
-      "description": "Analyzes ICU clinical data using CLIF format and clifpy. Loads tables, computes SOFA/CCI/Elixhauser scores, creates wide datasets.",
+      "description": "Analyzes ICU clinical data using CLIF format and clifpy. Loads tables, computes SOFA/CCI/Elixhauser scores, creates wide datasets. Ships PHI guardrail hooks and consortium agents (buddy-tester, phi-auditor, code-reviewer).",
       "source": "./",
       "strict": false,
-      "skills": ["./skills/clif-icu"]
+      "skills": [
+        "./skills/clif-icu"
+      ],
+      "agents": [
+        "./agents/clif-buddy-tester.md"
+      ],
+      "hooks": "./hooks/hooks.json"
     }
   ]
 }

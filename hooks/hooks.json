@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Glob|Grep|Bash|Edit|Write|NotebookEdit",
+        "hooks": [
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/phi_guard.py\""}
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read|Bash",
+        "hooks": [
+          {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/phi_scan.py\""}
+        ]
+      }
+    ]
+  }
+}
