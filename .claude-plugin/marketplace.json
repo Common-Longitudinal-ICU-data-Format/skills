@@ -14,12 +14,8 @@
       "description": "Analyzes ICU clinical data using CLIF format and clifpy. Loads tables, computes SOFA/CCI/Elixhauser scores, creates wide datasets. Ships PHI guardrail hooks and consortium agents (buddy-tester, phi-auditor, code-reviewer).",
       "source": "./",
       "strict": false,
-      "skills": [
-        "./skills/clif-icu"
-      ],
-      "agents": [
-        "./agents/clif-buddy-tester.md"
-      ],
+      "skills": ["./skills/clif-icu"],
+      "agents": ["./agents/clif-buddy-tester.md"],
       "hooks": "./hooks/hooks.json"
     }
   ]
