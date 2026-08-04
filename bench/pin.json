@@ -1,0 +1,8 @@
+{
+  "source": "clif-forge-sample",
+  "repo": "https://github.com/sajor2000/clif-forge",
+  "ref": "c29e0e0d101418aa898d0b7daa8250cecd178a3b",
+  "note": "clif-forge has no release tags yet; pinned to main SHA",
+  "subset": {"n_hospitalizations": 500, "rule": "first 500 hospitalization_id ascending (numeric sort)"},
+  "verified": "2026-07-31"
+}

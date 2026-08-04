@@ -34,7 +34,13 @@ cat > "$STUBDIR/git" <<'STUB'
 #!/usr/bin/env bash
 # Minimal git stub for setup_dev_data.sh.
 case "$1" in
-  clone)   mkdir -p "$3/.git"; exit 0 ;;      # git clone URL DIR
+  clone)                                       # git clone URL DIR
+    mkdir -p "$3/.git"
+    if [ "${STUB_GIT_MAKE_SAMPLE:-0}" = "1" ]; then
+      mkdir -p "$3/sample_dataset"
+      echo x > "$3/sample_dataset/clif_vitals.parquet"
+    fi
+    exit 0 ;;
   -C)
     sub="$3"
     case "$sub" in
@@ -80,7 +86,9 @@ if [ "${1:-}" = "-m" ]; then
   esac
 fi
 if [ "${1:-}" = "-" ]; then                    # heredoc config writer
-  cat >/dev/null; exit 0
+  cat >/dev/null                               # "-" data_dir timezone config_path
+  [ -n "${4:-}" ] && echo '{}' > "$4"          # emulate create_example_config's write
+  exit 0
 fi
 exit 0
 STUB
@@ -106,6 +114,44 @@ run_case() {
   if [ -n "$notwant" ] && grep -qF "$notwant" <<<"$out"; then
     echo "  found forbidden: '$notwant'"; ok=0
   fi
+  if [ "$ok" -eq 1 ]; then
+    echo "PASS: $name"
+  else
+    echo "FAIL: $name"; echo "----- output -----"; echo "$out"; echo "------------------"
+    fails=$((fails + 1))
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# run_case_source NAME EXPECTED_EXIT WANT_SUBSTR CHECK_FILE [env assignments...] -- SCRIPT_ARGS...
+#
+# Like run_case, but for the --source cases: these need custom flags/positionals
+# per case (not the fixed "./dev_data 5"), and some assert a file landed in the
+# workdir, so the workdir is kept around until after that check instead of being
+# torn down before the caller can see it. CHECK_FILE is a workdir-relative path,
+# or "" to skip the file check.
+# ---------------------------------------------------------------------------
+run_case_source() {
+  local name="$1" want_exit="$2" want="$3" checkfile="$4"; shift 4
+  local envs=()
+  while [ "$1" != "--" ]; do envs+=("$1"); shift; done
+  shift # drop the -- separator
+
+  local workdir; workdir="$(mktemp -d)"
+  local out rc
+  out="$(cd "$workdir" && env PATH="$STUBDIR:$PATH" "${envs[@]+"${envs[@]}"}" bash "$SCRIPT" "$@" 2>&1)"
+  rc=$?
+
+  local ok=1
+  [ "$rc" -eq "$want_exit" ] || { echo "  exit: got $rc want $want_exit"; ok=0; }
+  if [ -n "$want" ] && ! grep -qF "$want" <<<"$out"; then
+    echo "  missing expected: '$want'"; ok=0
+  fi
+  if [ -n "$checkfile" ] && [ ! -f "$workdir/$checkfile" ]; then
+    echo "  missing expected file: '$checkfile'"; ok=0
+  fi
+  rm -rf "$workdir"
+
   if [ "$ok" -eq 1 ]; then
     echo "PASS: $name"
   else
@@ -141,6 +187,22 @@ run_case "unknown pin ref fails loudly" 2 "not found" "Non-PHI sandbox ready" \
 # F. Unsupported CLIF_SCHEMA_VERSION -> reject early, before any clone.
 run_case "bad schema version rejected" 2 "unsupported" "Cloning" \
   CLIF_SCHEMA_VERSION=9.9
+
+# G. Unknown --source fails fast, before any clone.
+run_case_source "unknown --source fails fast" 2 "unknown --source" "" \
+  -- --source not-a-source
+
+# H. clif-forge-sample happy path: copies the committed parquet, no generation.
+run_case_source "clif-forge-sample happy path" 0 "sandbox ready" "dev_data/clif_vitals.parquet" \
+  STUB_GIT_MAKE_SAMPLE=1 -- --source clif-forge-sample ./dev_data
+
+# I. clif-forge-sample with an EMPTY sample dir never says ready.
+run_case_source "empty clif-forge sample dir is not green" 2 "" "" \
+  -- --source clif-forge-sample ./dev_data
+
+# J. --config writes the config file at the given path.
+run_case_source "--config writes config at given path" 0 "" "custom.json" \
+  STUB_GIT_MAKE_SAMPLE=1 -- --source clif-forge-sample --config ./custom.json ./dev_data
 
 echo
 if [ "$fails" -eq 0 ]; then

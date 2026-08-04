@@ -53,6 +53,22 @@ clifpy version, dataset, or institution.
 
 ---
 
+## Mechanical enforcement
+
+This document is guidance for a human; the plugin also ships mechanical
+enforcement so the workflow doesn't rely on discipline alone. Two Claude Code
+hooks (`hooks/hooks.json`) run automatically in any Claude Code session with
+this plugin installed: a `PreToolUse` guard (`hooks/phi_guard.py`) that blocks
+tool calls touching a configured real-data directory, and a `PostToolUse`
+scanner (`hooks/phi_scan.py`) that advisorily flags PHI-shaped patterns in
+tool output. Configuration (listing your site's real-data directories) and
+known limitations (Bash matching is substring-only, Claude Code only, inactive
+until configured, and more) are documented in
+[`hooks/README.md`](../../../hooks/README.md) — read it before relying on the
+guard.
+
+---
+
 ## 1. Set up a non-PHI dev environment
 
 You point clifpy at data you supply. (No *documented* bundled demo loader was found
@@ -63,8 +79,12 @@ Options, pick based on your constraints:
 | Option | License / access | Data | Best when |
 |--------|------------------|------|-----------|
 | **synthetic_clif** | MIT, no credentialing | Fully synthetic CLIF **2.1.0**; pre-generated set ≈ 10k hospitalizations / ~33M rows / all 28 tables (`clif_<table>.parquet` or CSV) | You want a large-N sandbox with zero data-use paperwork, safe to share freely |
+| **clif-forge** | Free, openly redistributable — no release tags upstream yet, pinned by commit SHA | Empirically calibrated to aggregate CLIF statistics (not just hand-specified priors); committed in-repo sample dataset (`sample_dataset/`), CLIF 2.1, ~20 tables | You want a fast, redistributable non-PHI sandbox with statistically realistic distributions, clone-and-go (no generation step) |
 | **MIMIC-IV Clinical Database Demo** | Open, **ODbL** (attribution + share-alike) | **Raw MIMIC-IV, NOT CLIF-formatted** — 100 patients, de-identified, excludes free-text notes; needs a CLIF-MIMIC ETL to become CLIF | You want an open, real-derived structure and are willing to run the ETL; no credentialing |
 | **MIMIC-IV-Ext-CLIF** | PhysioNet **credentialed + DUA-gated** | Real-derived (de-identified), already CLIF-formatted, 14 tables | You specifically need real-derived CLIF structure; note the demo N is small enough to distort analyses |
+
+> Full option-by-option comparison, including which to pick for agent-assisted
+> development vs. statistical realism: [synthetic-datasets.md](synthetic-datasets.md).
 
 > **synthetic_clif** — https://github.com/Common-Longitudinal-ICU-data-Format/synthetic_clif
 > **MIMIC-IV Clinical Database Demo** — https://physionet.org/content/mimic-iv-demo/ (open, ODbL)
@@ -99,8 +119,15 @@ python3 -m synthetic_clif --hospitalizations 100 --output ./dev_data \
 ```
 
 The one-command helper [`scripts/setup_dev_data.sh`](../scripts/setup_dev_data.sh)
-automates the clone/install/generate, pins the same ref (override with
-`CLIF_SYNTHETIC_REF`), records the resolved commit SHA, and writes a demo config.
+automates the clone/install/generate, pins the resolved ref, and writes a demo
+config. It supports three sources via `--source {synthetic-clif|clif-forge-sample|
+clif-forge-generate}` (default `synthetic-clif`): `synthetic-clif` clones and
+generates with `synthetic_clif` (override the pin with `CLIF_SYNTHETIC_REF`);
+`clif-forge-sample` copies clif-forge's committed sample dataset as-is, no
+generation step; `clif-forge-generate` clones and generates a custom cohort with
+the `clif-forge` CLI (override the pin with `CLIF_FORGE_REF`). All three record
+the resolved commit SHA for provenance. See
+[synthetic-datasets.md](synthetic-datasets.md) for which to pick.
 
 ### Point clifpy at the non-PHI data
 
