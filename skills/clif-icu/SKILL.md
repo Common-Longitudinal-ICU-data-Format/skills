@@ -1,6 +1,6 @@
 ---
 name: clif-icu
-description: Analyzes ICU clinical data using the Common Longitudinal ICU data Format (CLIF) and clifpy Python library. Loads and filters CLIF tables (vitals, labs, medications, respiratory support, microbiology) by hospitalization_id and category columns. Computes clinical scores including SOFA, Charlson Comorbidity Index (CCI), and Elixhauser. Creates wide datasets and performs data transformations. Use when working with ICU data, CLIF format, clifpy, clinical scoring, ventilator data, sepsis research, or intensive care analytics.
+description: Analyzes ICU clinical data using CLIF and clifpy. Loads and filters tables, computes SOFA/CCI/Elixhauser scores, and creates wide datasets. Reviews CLIF Python, R, SQL, notebooks, and study kits for macOS/Linux/Windows portability and CLIF 2.1/3.0 compatibility, especially capitalization and category vocabulary. Use for CLIF analysis, clinical scoring, or CLIF code review.
 ---
 
 # CLIF + clifpy
@@ -70,6 +70,8 @@ Activate this skill when:
 - Processing vitals, labs, medications, or respiratory support data
 - Creating wide datasets from longitudinal ICU data
 - Researching sepsis, ARDS, or critical care outcomes
+- Reviewing CLIF code for macOS, Linux, and Windows compatibility
+- Checking CLIF 2.1/3.0 table, field, and category capitalization compatibility
 
 ---
 
@@ -82,8 +84,9 @@ Follow these steps when working with CLIF data:
 3. **Choose the right approach**:
    - Use **individual table classes** for most tasks (faster, more memory efficient)
    - Use **ClifOrchestrator** only when creating wide datasets or computing SOFA scores
-4. **Look up category values** - Check [mCIDE/](mCIDE/) for valid category values before filtering
+4. **Look up category values** - Check the declared version's schema and mCIDE vocabulary before filtering. Bundled [mCIDE/](mCIDE/) values do not establish 3.0 compatibility; use the [compatibility review guide](reference/compatibility-review.md).
 5. **Compute clinical scores** - Use ClifOrchestrator for SOFA, or refer to [reference/clinical-scores.md](reference/clinical-scores.md) for CCI and Elixhauser
+6. **Review compatibility** - Before delivering code, follow [reference/compatibility-review.md](reference/compatibility-review.md). Check macOS/Linux/Windows paths, filename case, shells, dependencies, and multiprocessing. Check CLIF 2.1/3.0 literals in filters, joins, recodes, and scores against exact versioned sources. Report which combinations were executed, statically reviewed, or not tested.
 
 ---
 
@@ -100,7 +103,7 @@ These tables have many rows per hospitalization. **Always filter by category col
 | patient_assessments | assessment_category | gcs_total, rass, cam_icu |
 | medication_admin_continuous | med_category | norepinephrine, propofol, fentanyl |
 | medication_admin_intermittent | med_category | vancomycin, cefepime |
-| respiratory_support | device_category | IMV, NIPPV, High_Flow_NC |
+| respiratory_support | device_category | 2.1: IMV, NIPPV, High Flow NC; 3.0: imv, nippv, hfnc |
 | microbiology_culture | organism_category | staphylococcus_aureus, escherichia_coli |
 
 ### Other Tables (hospitalization_id filter only, if needed)
@@ -210,6 +213,7 @@ For detailed information, read the appropriate reference file:
 
 | Topic | File | When to Read |
 |-------|------|--------------|
+| **Code compatibility review** | [reference/compatibility-review.md](reference/compatibility-review.md) | Writing/reviewing CLIF code for macOS/Linux/Windows and CLIF 2.1/3.0, especially capitalization |
 | **PHI-safe agentic development** | [reference/phi-safe-development.md](reference/phi-safe-development.md) | Before pointing an agent at any data; setting up a non-PHI dev environment; sanitizing real-data errors |
 | **Table schemas & categories** | [reference/tables.md](reference/tables.md) | Looking up table structure, column definitions, category values |
 | **Clinical scores** | [reference/clinical-scores.md](reference/clinical-scores.md) | Computing SOFA, CCI, Elixhauser scores |

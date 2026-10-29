@@ -50,7 +50,14 @@ the call.
 |-------|-------------|
 | **clif-buddy-tester** | Buddy testing a CLIF study kit before it goes to the consortium — does it run at your site, produce every promised poolable artifact, and stay PHI-safe? |
 | **clif-phi-auditor** | Before sharing, pushing, or distributing any CLIF artifact — scans repos, results, figures, logs, and output bundles for PHI leakage and small-cell risk. |
-| **clif-code-reviewer** | Reviewing CLIF analysis code (Python/clifpy, R, SQL, notebooks) before it runs on real data — catches the CLIF-specific footguns that produce plausible-but-wrong multi-site results. |
+| **clif-code-reviewer** | Reviewing CLIF analysis code (Python/clifpy, R, SQL, notebooks) for correctness, macOS/Linux/Windows portability, and CLIF 2.1/3.0 compatibility, especially capitalization and category values. |
+
+The skill and reviewer use the [compatibility review guide](skills/clif-icu/reference/compatibility-review.md)
+to check exact versioned vocabularies and OS-dependent behavior. Reviews report
+coverage across the three operating systems and two CLIF versions, distinguishing
+executed checks from static review and untested targets. WSL is reported separately
+from native Windows. The guide includes a mortality regression case for
+`Expired`/`expired` variants and checks for unmapped death labels and misleading zeros.
 
 ---
 
