@@ -1,62 +1,63 @@
 ---
 name: clif-icu
-description: Analyzes ICU clinical data using CLIF and clifpy. Loads and filters tables, computes SOFA/CCI/Elixhauser scores, and creates wide datasets. Reviews CLIF Python, R, SQL, notebooks, and study kits for macOS/Linux/Windows portability and CLIF 2.1/3.0 compatibility, especially capitalization and category vocabulary. Use for CLIF analysis, clinical scoring, or CLIF code review.
+description: Write, debug, and review CLIF analytical code in R or Python. Confirm the user's CLIF and mCIDE version, retrieve matching GitHub vocabularies, catch case/snake_case and schema bugs, and check macOS/Linux/Windows portability. Use in any coding harness with synthetic data and privacy-safe outputs.
 ---
 
 # CLIF + clifpy
 
-**CLIF** (Common Longitudinal ICU data Format) + **clifpy** Python library for ICU data analysis.
+**CLIF** (Common Longitudinal ICU data Format) analytics in **R or Python**.
+Use the active harness's tools in Codex, Claude Code, OpenCode, Pi, or another
+coding agent. Read [portable agentic coding](reference/agentic-coding.md) before
+writing code. Claude plugin hooks and agents are optional, harness-specific integrations.
 
-```bash
-pip install clifpy
-```
-
----
-
-## Critical: PHI-Safe Agentic Development
-
-**When any AI agent helps write or debug CLIF code — clifpy, R, ETL, ad-hoc scripts, anything — the agent must never receive PHI/RHI (real patient data).** This is a universal rule for CLIF agentic coding, not just clif-icu analysis. Develop against non-PHI data; the researcher runs on real data themselves, in their own secure environment.
-
-1. **Develop against non-PHI data.** The agent writes/debugs code against synthetic or demo CLIF data only. If your org has **Claude Enterprise**, use it here too; but **any channel — a consumer Max/Pro plan or the first-party API — is fine here, because the agent never sees PHI.** A covered channel becomes required only at step 3.
-2. **The researcher runs the code on real PHI themselves**, in their own secure/HIPAA environment. The strongest posture keeps the agent absent for this step.
-3. **If Claude must be in the loop on real data, toggle to a BAA-covered channel first.** Which channels are covered — and their per-channel conditions (ZDR, HIPAA-ready org, cloud-provider BAA) — is perishable; the current matrix, with its verify-before-relying timestamp, lives in [reference/phi-safe-development.md](reference/phi-safe-development.md). **Verify the active credential is the covered endpoint, not a Max/Pro plan** (e.g. `/status` + env vars), confirm current org coverage there, and **sanitize outputs regardless — a covered channel is not permission to paste raw PHI.**
-4. **This skill self-enforces the above** within clif-icu work — pointing an agent at real data on an uncovered plan is a defect.
-
-**Non-PHI dev data:** Choose from [`synthetic_clif`](https://github.com/Common-Longitudinal-ICU-data-Format/synthetic_clif), [`clif-forge`](https://github.com/sajor2000/clif-forge), or [MIMIC-IV-Ext-CLIF](https://physionet.org/content/mimic-iv-ext-clif/1.1.0/) — see [`reference/synthetic-datasets.md`](reference/synthetic-datasets.md) for a comparison. [`scripts/setup_dev_data.sh`](scripts/setup_dev_data.sh) bootstraps a one-command sandbox.
-
-**Never paste PHI into the conversation** — no raw tracebacks, `.head()`/`.sample()`/`value_counts()` previews, MRNs, `patient_id`/`hospitalization_id` values, dates/timestamps, note or organism free text, or small-cell counts from real data. This holds even on a BAA-covered channel.
-
-Full setup, sanitization checklist, and HIPAA-channel guidance: [reference/phi-safe-development.md](reference/phi-safe-development.md).
+For Python with clifpy, install it in the project's environment. R workflows use
+the project's R dependencies; they do not require a Python API.
 
 ---
 
-## CLIF version: 2.1 (stable) vs 3.0 (multimodal)
+## Critical: PHI/PII-safe agentic development
 
-**Default to CLIF 2.1.0** — the current stable data dictionary, and what clifpy and
-`synthetic_clif` target. **CLIF 3.0** is a *breaking, major* release (July 2026) that
-goes **multimodal**: it adds imaging and clinical-notes tables (e.g. `clinical_notes_facts`,
-`airway`) and renames many `*_category`/`*_group`/`*_type` values to a lowercase/`snake_case`
-convention (`IMV` → `imv`, `High Flow NC` → `hfnc`). Several 3.0 tables are still **Alpha**
-("changes remain likely") — treat the [3.0 data dictionary](https://clif-icu.com/data-dictionary/data-dictionary-3.0.0)
-as the authority, not this file. *(Verified 2026-07-23; re-check before relying.)*
+These rules apply to every harness, model, language, and OS.
 
-**Toggle:** set the `CLIF_SCHEMA_VERSION` environment variable to `2.1` (default) or
-`3.0`. **Ask the researcher which CLIF version their data is in before writing code** —
-the value conventions and table set differ.
+1. **Develop against synthetic data only.** Never expose real patient rows,
+   identifiers, dates, notes, images, secrets, or embedded sensitive examples to
+   the model, tool output, MCP, web searches, external services, or telemetry.
+   Local execution can still expose stdout and tracebacks to the agent.
+2. **The researcher runs real-data analyses separately**, in their approved
+   environment with the agent absent. Do not move real data into a coding
+   workspace or synced output folder to make a test pass.
+3. **Share only privacy-reviewed aggregate outputs**, with appropriate
+   suppression. Do not paste raw tracebacks, previews, patient identifiers,
+   arbitrary free-text labels, or small-cell counts.
+4. **Check the active harness's protections.** Claude plugin hooks are optional
+   defense in depth, not a sandbox, a BAA, or a compliance guarantee. Their
+   absence never permits sensitive-data access in another harness.
 
-**clifpy ships both schemas.** It does not switch version on `ClifOrchestrator`; instead
-you migrate or validate against an explicit version. Migrate 2.1 → 3.0 with
-`crosswalk_table_2_1_to_3_0(df, table)` (in memory), `crosswalk_file_2_1_to_3_0(...)`
-(out-of-core), or `CrosswalkMigrationRunner(config_path=...).run(dry_run=True)` (whole
-site); validate against a version with `load_schema(table, "3.0")`. Some values are
-**ambiguous** and need a human decision (e.g. `albumin` → `albumin_5`/`albumin_25`) —
-never let an agent auto-resolve those. Full details and code:
-[reference/phi-safe-development.md](reference/phi-safe-development.md).
+For a synthetic sandbox, use [synthetic_clif](https://github.com/Common-Longitudinal-ICU-data-Format/synthetic_clif)
+or [clif-forge](https://github.com/sajor2000/clif-forge); see
+[synthetic datasets](reference/synthetic-datasets.md) and
+[PHI-safe development](reference/phi-safe-development.md). A credentialed or
+real-derived dataset is not automatically safe for an agent session.
 
-**PHI note:** 3.0's clinical notes and imaging are the *most PHI-dense* data in CLIF. By
-design CLIF holds only note **metadata** (the text is provisioned just-in-time, not stored
-in CLIF) — mirror that discipline: the PHI-safe rules above apply *doubly* to notes and
-imaging, which an agent must never receive.
+---
+
+## Confirm the CLIF and mCIDE version
+
+**Ask the user which data-dictionary version their tables follow before writing
+version-sensitive analysis code.** Require an explicit answer or an existing
+project declaration. Do not default to 2.1, infer a version from casing, or
+silently upgrade the dataset. If undeclared, continue public-source research
+and environment checks while the version question is pending.
+
+Use the declared version, whether 2.1, 3.0, or a future release, and retrieve its
+[current mCIDE and schemas](reference/current-mcide.md). CLIF 2.1 uses mixed-case
+values; 3.0 standardizes many values to lowercase `snake_case` and also renames
+categories. Verify actual sources instead of applying a generic case conversion.
+
+`CLIF_SCHEMA_VERSION` in bundled examples declares a target; it does not detect,
+validate, or migrate the input. Legacy examples may support only named versions.
+Verify their filters and installed APIs before reuse. The clifpy package version
+and CLIF data version are separate. Migration requires an explicit, reviewed map.
 
 ---
 
@@ -65,6 +66,7 @@ imaging, which an agent must never receive.
 Activate this skill when:
 - Working with ICU/intensive care unit clinical data
 - Using or asking about the CLIF data format
+- Writing or debugging CLIF analyses in R or Python with any coding harness
 - Loading data with the clifpy Python library
 - Computing clinical scores (SOFA, CCI, Elixhauser, MDRO)
 - Processing vitals, labs, medications, or respiratory support data
@@ -79,14 +81,15 @@ Activate this skill when:
 
 Follow these steps when working with CLIF data:
 
+0. **Confirm the target** - Record the user's CLIF version and mCIDE ref, language, runtime, OS, and harness. Read [agentic coding](reference/agentic-coding.md) and retrieve [current mCIDE](reference/current-mcide.md).
 1. **Identify required tables** - Determine which CLIF tables contain the data needed (vitals, labs, medications, etc.)
-2. **Always filter data** - Use hospitalization_id filters on all tables; add category filters on long tables (see filtering rules below)
-3. **Choose the right approach**:
+2. **Validate keys and restrict the cohort** - Use `patient_id` for patient-level tables and `hospitalization_id` where the declared schema supports it. Audit and canonicalize categorical inputs before applying category filters; raw pushdown filters can discard nonconforming variants.
+3. **Choose the right approach** - Follow the project's R or Python stack. For Python/clifpy:
    - Use **individual table classes** for most tasks (faster, more memory efficient)
    - Use **ClifOrchestrator** only when creating wide datasets or computing SOFA scores
-4. **Look up category values** - Check the declared version's schema and mCIDE vocabulary before filtering. Bundled [mCIDE/](mCIDE/) values do not establish 3.0 compatibility; use the [compatibility review guide](reference/compatibility-review.md).
-5. **Compute clinical scores** - Use ClifOrchestrator for SOFA, or refer to [reference/clinical-scores.md](reference/clinical-scores.md) for CCI and Elixhauser
-6. **Review compatibility** - Before delivering code, follow [reference/compatibility-review.md](reference/compatibility-review.md). Check macOS/Linux/Windows paths, filename case, shells, dependencies, and multiprocessing. Check CLIF 2.1/3.0 literals in filters, joins, recodes, and scores against exact versioned sources. Report which combinations were executed, statically reviewed, or not tested.
+4. **Audit categories before filtering** - Use the declared version's current schema and mCIDE. Check mixed case, spacing, unknowns, and collisions before a category predicate can discard rows. Preserve originals and use unambiguous canonical mappings. Bundled [mCIDE/](mCIDE/) values are snapshots; see the [compatibility guide](reference/compatibility-review.md).
+5. **Compute clinical scores** - For Python/clifpy, verify the installed SOFA/CCI/Elixhauser interfaces. In R, verify the chosen implementation and synthetic score tests; do not invent R equivalents of Python methods. See [clinical scores](reference/clinical-scores.md).
+6. **Review compatibility** - Follow [reference/compatibility-review.md](reference/compatibility-review.md). Check case, whitespace, `snake_case`, schema conformance, and OS portability. Repair only unambiguous vocabulary-backed mismatches, preserve source values, and make unknowns visible. Test expected results with synthetic inputs; report executed and untested targets.
 
 ---
 
@@ -94,7 +97,10 @@ Follow these steps when working with CLIF data:
 
 ### Long Tables (Use BOTH hospitalization_id AND category filters)
 
-These tables have many rows per hospitalization. **Always filter by category column:**
+These tables have many rows per hospitalization. Restrict the cohort first, then
+validate/normalize categorical values before applying category filters. Do not
+push a raw category predicate into the loader when it can discard nonconforming
+variants or hide unknowns. Use canonical filters once that input contract is verified:
 
 | Table | Category Column | Example Values |
 |-------|-----------------|----------------|
@@ -106,13 +112,13 @@ These tables have many rows per hospitalization. **Always filter by category col
 | respiratory_support | device_category | 2.1: IMV, NIPPV, High Flow NC; 3.0: imv, nippv, hfnc |
 | microbiology_culture | organism_category | staphylococcus_aureus, escherichia_coli |
 
-### Other Tables (hospitalization_id filter only, if needed)
+### Other Tables (use the schema's cohort key)
 
-All other tables (patient, hospitalization, adt, code_status, position, crrt_therapy, ecmo_mcs, hospital_diagnosis, patient_procedures, microbiology_susceptibility, microbiology_nonculture) have fewer rows per hospitalization. Filter by `hospitalization_id` only when needed.
+Filter patient-level tables by `patient_id`; use `hospitalization_id` for encounter-level tables where that column exists. Verify table and field names against the declared CLIF version before applying a cohort filter.
 
 ---
 
-## Quick Start
+## Quick Start (Python/clifpy)
 
 > **PHI-safe:** for agent-assisted work, `data_directory` must point at **non-PHI** synthetic/demo data — see [reference/phi-safe-development.md](reference/phi-safe-development.md).
 
@@ -213,6 +219,8 @@ For detailed information, read the appropriate reference file:
 
 | Topic | File | When to Read |
 |-------|------|--------------|
+| **Portable agentic coding** | [reference/agentic-coding.md](reference/agentic-coding.md) | R/Python workflows, harness differences, and PHI/PII boundaries |
+| **Current mCIDE** | [reference/current-mcide.md](reference/current-mcide.md) | Resolving the user's declared CLIF version to current GitHub vocabulary and schemas |
 | **Code compatibility review** | [reference/compatibility-review.md](reference/compatibility-review.md) | Writing/reviewing CLIF code for macOS/Linux/Windows and CLIF 2.1/3.0, especially capitalization |
 | **PHI-safe agentic development** | [reference/phi-safe-development.md](reference/phi-safe-development.md) | Before pointing an agent at any data; setting up a non-PHI dev environment; sanitizing real-data errors |
 | **Table schemas & categories** | [reference/tables.md](reference/tables.md) | Looking up table structure, column definitions, category values |
@@ -247,7 +255,7 @@ from clifpy.tables import (
 ## Performance Rules
 
 1. **Use individual table classes** - Not ClifOrchestrator
-2. **ALWAYS filter by hospitalization_id**
+2. **Filter with the table's actual cohort key**
 3. **Filter long tables by category**
 4. **Use parquet** - Faster than CSV
 5. **Limit columns** - `columns=['col1', 'col2']`
@@ -256,10 +264,7 @@ from clifpy.tables import (
 
 ## Requirements
 
-```bash
-pip install clifpy
-```
-
-- Python 3.8+
-- Dependencies: pandas, pyarrow (for parquet support)
-- **For agent-assisted development:** set up a non-PHI dataset first (`scripts/setup_dev_data.sh`; see [reference/phi-safe-development.md](reference/phi-safe-development.md)). Do not run against real PHI while an agent can see the output.
+- Use the project's supported R or Python runtime and locked dependencies.
+- For Python/clifpy, verify the installed package's runtime and dependency requirements.
+- Shell helpers require their documented shell; do not assume native Windows can run `.sh` files.
+- **For agent-assisted development:** use supplied or in-memory synthetic fixtures. The Bash sandbox helper is optional; see [PHI-safe development](reference/phi-safe-development.md). Do not run against real patient data while an agent can observe.

@@ -1,6 +1,7 @@
 # CLIF Skills Plugin
 
-Claude Code plugin providing skills for working with **CLIF** (Common Longitudinal ICU data Format) and the **clifpy** Python library.
+Portable coding guidance for **CLIF** analytics in R or Python, with an optional
+Claude Code plugin for review agents and hooks.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
@@ -8,11 +9,10 @@ Claude Code plugin providing skills for working with **CLIF** (Common Longitudin
 
 ## Installation
 
-### 1. Install clifpy
+### 1. Use the project's R or Python environment
 
-```bash
-pip install clifpy
-```
+Use its declared runtime and dependencies. Python/clifpy examples require clifpy;
+R workflows use their R packages.
 
 ### 2. Install Skill
 
@@ -25,9 +25,13 @@ pip install clifpy
 
 #### Manual
 
-Copy `skills/clif-icu` to:
-- Personal: `~/.claude/skills/clif-icu/`
-- Project: `.claude/skills/clif-icu/`
+Copy `skills/clif-icu` to the active harness's skill directory:
+
+- Codex, OpenCode, or Pi: `.agents/skills/clif-icu/` or `~/.agents/skills/clif-icu/`.
+- Claude Code: `.claude/skills/clif-icu/` or `~/.claude/skills/clif-icu/`.
+
+If discovery is unavailable, explicitly load `SKILL.md`. Claude plugin agents and
+hooks are separate from the portable core and are not installed by a manual copy.
 
 ---
 
@@ -35,7 +39,7 @@ Copy `skills/clif-icu` to:
 
 | Skill | Description |
 |-------|-------------|
-| **clif-icu** | Analyzes ICU clinical data using CLIF format and clifpy. Loads tables, computes SOFA/CCI/Elixhauser scores, creates wide datasets. Self-enforces a **PHI-safe agentic workflow** and is **CLIF version-aware** (2.1 stable / 3.0 multimodal). |
+| **clif-icu** | Writes, debugs, and reviews CLIF analytics in R or Python. Confirms the user's CLIF/mCIDE version, checks current vocabularies and code compatibility, and uses synthetic inputs for agent-assisted development. |
 
 ---
 
@@ -52,20 +56,19 @@ the call.
 | **clif-phi-auditor** | Before sharing, pushing, or distributing any CLIF artifact — scans repos, results, figures, logs, and output bundles for PHI leakage and small-cell risk. |
 | **clif-code-reviewer** | Reviewing CLIF analysis code (Python/clifpy, R, SQL, notebooks) for correctness, macOS/Linux/Windows portability, and CLIF 2.1/3.0 compatibility, especially capitalization and category values. |
 
-The skill and reviewer use the [compatibility review guide](skills/clif-icu/reference/compatibility-review.md)
-to check exact versioned vocabularies and OS-dependent behavior. Reviews report
-coverage across the three operating systems and two CLIF versions, distinguishing
-executed checks from static review and untested targets. WSL is reported separately
-from native Windows. The guide includes a mortality regression case for
-`Expired`/`expired` variants and checks for unmapped death labels and misleading zeros.
+The [portable workflow](skills/clif-icu/reference/agentic-coding.md) applies in
+Codex, Claude Code, OpenCode, Pi, and other skill-capable agents. It requires a
+declared CLIF version and [current mCIDE lookup](skills/clif-icu/reference/current-mcide.md),
+checks case/snake_case bugs and OS differences, and reports what was actually tested.
+Claude plugin agents and hooks are separate integrations, not portable privacy guarantees.
 
 ---
 
 ## PHI-Safe Agentic Development
 
 When an AI agent helps you write or debug CLIF code, **the agent must never receive
-PHI/RHI (real patient data)** — an agent session captures stdout *and* uncaught
-tracebacks. The skill self-enforces this two-phase workflow:
+PHI/PII/RHI (real patient data)** — an agent session captures stdout *and* uncaught
+tracebacks. The skill requires this workflow in every harness:
 
 1. **Develop with the agent against non-PHI data only** — synthetic/demo CLIF data.
    Run `skills/clif-icu/scripts/setup_dev_data.sh --source clif-forge-sample ./dev_data` for the fastest path to a non-PHI sandbox, or see [`reference/synthetic-datasets.md`](skills/clif-icu/reference/synthetic-datasets.md) for other options.
@@ -143,13 +146,12 @@ agent" in [`bench/README.md`](bench/README.md).
 
 ## CLIF version awareness (2.1 vs 3.0)
 
-The skill targets **CLIF 2.1** (current stable) by default and is aware of **CLIF 3.0**
-(the July 2026 multimodal release, which changes category conventions and adds imaging +
-clinical-notes tables). Declare your target with `CLIF_SCHEMA_VERSION=2.1|3.0`; the
-scripts echo and validate the value but do **not** auto-crosswalk — on the `3.0` path
-they warn that 2.1-convention filters may silently match zero rows. Migration 2.1 → 3.0
-is a deliberate, audited step (clifpy crosswalk). See the "CLIF version: 2.1 vs 3.0"
-section of the PHI-safe guide.
+Declare the dataset's CLIF version before generating version-sensitive code.
+The skill retrieves the matching mCIDE and schemas from GitHub, including future
+versions when their sources are available. It does not infer a version from casing
+or silently upgrade data. Bundled examples have their own supported versions;
+`CLIF_SCHEMA_VERSION` alone does not validate or migrate their inputs. See
+[current mCIDE](skills/clif-icu/reference/current-mcide.md).
 
 ---
 
